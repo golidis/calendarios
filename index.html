@@ -6,20 +6,17 @@
     <title>Calendário de Curso - SENAI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Bibliotecas do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <style>
         .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
         .day-header { font-size: 0.65rem; font-weight: bold; text-align: center; padding: 2px 0; color: #64748b; }
         .day-cell { 
-            aspect-ratio: 1; 
-            font-size: 0.75rem; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
-            position: relative;
-            overflow: hidden;
-            cursor: default;
+            aspect-ratio: 1; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; 
+            border-radius: 4px; border: 1px solid #e2e8f0; position: relative; overflow: hidden; cursor: default;
         }
         .day-cell.holiday { color: #ef4444; font-weight: bold; background-color: #fee2e2; border-color: #fca5a5; }
         .day-cell.weekend { background-color: #f8fafc; color: #94a3b8; }
@@ -32,11 +29,11 @@
         .calendar-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 relative">
 
     <div class="max-w-[1400px] mx-auto p-4 md:p-6 h-screen flex flex-col">
         
-        <!-- CABEÇALHO COM LOGO -->
+        <!-- CABEÇALHO COM LOGO E BOTÕES DA NUVEM -->
         <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="Logo SENAI" class="h-8 md:h-10 object-contain">
@@ -44,26 +41,31 @@
                 <h1 class="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Planejador de Cronograma</h1>
             </div>
             
-            <div class="flex gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
-                <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
-                
-                <button onclick="newDocument()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Criar um novo cronograma em branco">
+            <div class="flex flex-wrap gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                <button onclick="newDocument()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Criar um novo em branco">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Novo
                 </button>
                 
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
-                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Abrir um cronograma salvo">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 002 2h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5zM5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14"></path></svg>
-                    Abrir
+                <button onclick="openModal('modal-load')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Abrir do Banco de Dados">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 002-2v-4M17 9l-5 5-5-5M12 12.5V3"></path></svg>
+                    Abrir da Nuvem
                 </button>
                 
+                <button onclick="openModal('modal-save')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Salvar no Banco de Dados">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Salvar na Nuvem
+                </button>
+
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
-                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 rounded transition-all" title="Salvar cronograma atual">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    Salvar
+                <!-- Botões locais mantidos como fallback -->
+                <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
+                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar XLSX">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    XLSX
                 </button>
             </div>
         </header>
@@ -73,7 +75,7 @@
             <!-- PAINEL LATERAL (CONTROLES) -->
             <div class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 calendar-scroll">
                 
-                <!-- Informações do Curso e Capacidade (AGRUPADOS) -->
+                <!-- Identificação e Capacidade -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
                         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
@@ -90,8 +92,6 @@
                                 <input type="number" id="course-target-hours" placeholder="Ex: 1200" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
-
-                        <!-- Capacidade Diária fundida aqui -->
                         <div class="border-t border-slate-100 pt-3">
                             <h3 class="text-[11px] font-bold text-slate-500 uppercase mb-2">Capacidade Diária do Curso</h3>
                             <div class="grid grid-cols-2 gap-3">
@@ -118,9 +118,7 @@
                         <input type="text" id="instructor-name" placeholder="Nome do Instrutor" class="flex-1 border border-slate-300 rounded-lg p-2 text-sm">
                         <button onclick="addInstructor()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700">Add</button>
                     </div>
-                    <div id="instructors-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto calendar-scroll">
-                        <!-- Preenchido via JS -->
-                    </div>
+                    <div id="instructors-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto calendar-scroll"></div>
                 </div>
 
                 <!-- Feriados -->
@@ -136,9 +134,7 @@
                         </div>
                         <button onclick="addHoliday()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-700">Adicionar Feriado</button>
                     </div>
-                    <div id="holidays-list" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto calendar-scroll pr-1">
-                        <!-- Preenchido via JS -->
-                    </div>
+                    <div id="holidays-list" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto calendar-scroll pr-1"></div>
                 </div>
 
                 <!-- Unidades Curriculares (UCs) -->
@@ -181,15 +177,13 @@
                         </div>
                         
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor / Professor</label>
-                            <select id="uc-prof-select" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white">
-                                <!-- Preenchido via JS -->
-                            </select>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor</label>
+                            <select id="uc-prof-select" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white"></select>
                         </div>
                         
                         <div class="flex gap-2 mt-1">
                             <button id="btn-save-uc" onclick="saveUC()" class="flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm">
-                                Adicionar UC na Grade
+                                Adicionar UC
                             </button>
                             <button id="btn-cancel-edit" onclick="cancelEdit()" class="hidden bg-slate-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-500 transition-colors shadow-sm">
                                 Cancelar
@@ -197,29 +191,21 @@
                         </div>
                     </div>
 
-                    <div id="ucs-list" class="space-y-3 mt-4 pr-1">
-                        <!-- UCs Renderizadas Aqui -->
-                    </div>
+                    <div id="ucs-list" class="space-y-3 mt-4 pr-1"></div>
                 </div>
-
             </div>
 
             <!-- PAINEL PRINCIPAL (CALENDÁRIO E RESUMOS) -->
             <div class="w-full lg:w-2/3 flex flex-col gap-6 overflow-y-auto calendar-scroll pr-2 pb-4">
-                
                 <!-- Calendário -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0">
                     <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                         <h2 class="font-bold text-lg text-slate-800">Calendário de Execução</h2>
-                        <div class="flex gap-2" id="year-buttons">
-                            <!-- Gerado dinamicamente via JS se houver UCs -->
-                        </div>
+                        <div class="flex gap-2" id="year-buttons"></div>
                     </div>
                     
                     <div class="p-6 overflow-y-auto h-[600px] calendar-scroll relative" id="calendar-container">
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="calendar-grid">
-                            <!-- Meses gerados via JS de forma dinâmica -->
-                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="calendar-grid"></div>
                     </div>
                 </div>
 
@@ -229,668 +215,394 @@
                         <h2 class="font-bold text-lg text-slate-800">Alocação de UCs por Instrutor</h2>
                     </div>
                     <div class="p-6">
-                        <div id="instructor-summary" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Preenchido via JS -->
-                        </div>
+                        <div id="instructor-summary" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- MODAL: SALVAR NA NUVEM -->
+    <div id="modal-save" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 p-6 w-full max-w-md mx-4">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Salvar na Nuvem</h2>
+            <p class="text-sm text-slate-500 mb-4">Dê um nome para este cronograma. Se já existir um com esse nome, ele será substituído.</p>
+            <input type="text" id="cloud-save-name" placeholder="Ex: Eletro 2026" class="w-full border border-slate-300 rounded-lg p-3 text-sm font-semibold mb-6">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('modal-save')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+                <button onclick="saveToCloud()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Salvar Dados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ABRIR DA NUVEM -->
+    <div id="modal-load" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 p-6 w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Abrir da Nuvem</h2>
+            <p class="text-sm text-slate-500 mb-4">Selecione um cronograma salvo para carregar.</p>
+            
+            <div id="cloud-list-container" class="flex-1 overflow-y-auto calendar-scroll border border-slate-200 rounded-lg p-2 space-y-2 mb-6 min-h-[150px]">
+                <div class="text-center text-slate-400 text-sm py-8">Carregando listas do servidor...</div>
             </div>
 
+            <div class="flex justify-end gap-3 mt-auto">
+                <button onclick="closeModal('modal-load')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // =================================================================
+        // 🔥 COLE SUAS CHAVES DO FIREBASE AQUI DENTRO 🔥
+        // Substitua APENAS o conteúdo entre as chaves {} 
+        // =================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD4kXXgFJZSnPkMcr0RLpM7x7YCKBlaxuw",
+  authDomain: "calendariossenai.firebaseapp.com",
+  projectId: "calendariossenai",
+  storageBucket: "calendariossenai.firebasestorage.app",
+  messagingSenderId: "416015770151",
+  appId: "1:416015770151:web:59f19d9d6c225b84eea402"
+};
+        // =================================================================
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // ================= ESTADO GLOBAL =================
         let maxMorning = 4;
         let maxAfternoon = 4;
-        let instructors = []; // Inicia completamente vazio
+        let instructors = []; 
         let editingUcId = null; 
         
         let holidays = new Map([
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
             ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
             ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
-            
-            ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
-            ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
-            ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
-            ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']
         ]);
         
         let ucs = [];
         let schedule = {}; 
 
+        // ================= FIREBASE FUNÇÕES (NUVEM) =================
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if(id === 'modal-load') fetchCloudList();
+            if(id === 'modal-save') {
+                const currentName = document.getElementById('course-name').value;
+                document.getElementById('cloud-save-name').value = currentName || '';
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        async function saveToCloud() {
+            const saveName = document.getElementById('cloud-save-name').value.trim();
+            if(!saveName) { alert("Digite um nome para salvar."); return; }
+
+            const data = {
+                courseName: document.getElementById('course-name').value,
+                targetHours: document.getElementById('course-target-hours').value,
+                maxMorning: maxMorning,
+                maxAfternoon: maxAfternoon,
+                instructors: instructors,
+                holidays: Array.from(holidays.entries()), 
+                ucs: ucs,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                // Salva no banco de dados
+                await db.collection("cronogramas").doc(saveName).set(data);
+                alert("Cronograma salvo na nuvem com sucesso!");
+                closeModal('modal-save');
+            } catch (error) {
+                console.error("Erro ao salvar:", error);
+                alert("Erro de permissão! Verifique se você ativou o Firebase Firestore no 'Modo de Teste'.");
+            }
+        }
+
+        async function fetchCloudList() {
+            const container = document.getElementById('cloud-list-container');
+            container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Buscando na nuvem...</div>';
+            
+            try {
+                const snapshot = await db.collection("cronogramas").get();
+                if(snapshot.empty) {
+                    container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo ainda.</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg cursor-pointer transition-colors';
+                    item.innerHTML = `
+                        <span class="font-bold text-slate-700">${doc.id}</span>
+                        <button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (error) {
+                console.error("Erro ao buscar:", error);
+                container.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Erro de conexão. As chaves do Firebase foram configuradas corretamente?</div>';
+            }
+        }
+
+        async function loadFromCloud(docId) {
+            try {
+                const doc = await db.collection("cronogramas").doc(docId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    document.getElementById('course-name').value = data.courseName || '';
+                    document.getElementById('course-target-hours').value = data.targetHours || '';
+                    document.getElementById('max-morning').value = data.maxMorning || 4;
+                    document.getElementById('max-afternoon').value = data.maxAfternoon || 4;
+                    maxMorning = data.maxMorning || 4;
+                    maxAfternoon = data.maxAfternoon || 4;
+                    
+                    instructors = data.instructors || [];
+                    
+                    holidays.clear();
+                    if(data.holidays) {
+                        data.holidays.forEach(([date, name]) => holidays.set(date, name));
+                    }
+
+                    ucs = data.ucs || [];
+                    
+                    cancelEdit();
+                    renderInstructors();
+                    renderHolidays();
+                    calculateSchedule();
+                    
+                    closeModal('modal-load');
+                    alert(`Cronograma "${docId}" carregado com sucesso!`);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar:", error);
+                alert("Erro ao carregar os dados.");
+            }
+        }
+
         // ================= FUNÇÃO: NOVO DOCUMENTO =================
         function newDocument() {
-            if(confirm("Tem certeza que deseja criar um novo cronograma? Todo o progresso não salvo será perdido.")) {
+            if(confirm("Criar novo cronograma? O progresso não salvo será perdido.")) {
                 document.getElementById('course-name').value = '';
                 document.getElementById('course-target-hours').value = '';
                 document.getElementById('max-morning').value = 4;
                 document.getElementById('max-afternoon').value = 4;
-                maxMorning = 4;
-                maxAfternoon = 4;
-
+                maxMorning = 4; maxAfternoon = 4;
                 instructors = [];
-                
-                // Reseta os feriados base (2026 e 2027)
                 holidays = new Map([
                     ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
                     ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
                     ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
-                    
-                    ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
-                    ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
-                    ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
-                    ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']
                 ]);
-
                 ucs = [];
-                cancelEdit();
-                renderInstructors();
-                renderHolidays();
-                calculateSchedule();
+                cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule();
             }
         }
 
-        // ================= EVENTOS GERAIS =================
+        // ================= EVENTOS LOCAIS =================
         document.getElementById('max-morning').addEventListener('change', (e) => { maxMorning = parseInt(e.target.value) || 0; calculateSchedule(); });
         document.getElementById('max-afternoon').addEventListener('change', (e) => { maxAfternoon = parseInt(e.target.value) || 0; calculateSchedule(); });
 
-        // ================= UTILIDADES =================
-        function generateColor() {
-            const hue = Math.floor(Math.random() * 360);
-            return `hsl(${hue}, 70%, 80%)`;
-        }
+        function generateColor() { return `hsl(${Math.floor(Math.random() * 360)}, 70%, 80%)`; }
+        function formatDateBR(dateStr) { if(!dateStr) return '--/--/----'; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; }
+        function toDateString(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
 
-        function formatDateBR(dateStr) {
-            if(!dateStr) return '--/--/----';
-            const [y, m, d] = dateStr.split('-');
-            return `${d}/${m}/${y}`;
-        }
-
-        function toDateString(dateObj) {
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-        }
-
-        // ================= EXPORTAR / IMPORTAR EXCEL =================
         function exportExcel() {
             const wb = XLSX.utils.book_new();
-
-            const configData = [{
-                NomeCurso: document.getElementById('course-name').value,
-                CargaTotalPrevista: document.getElementById('course-target-hours').value,
-                MaxManha: maxMorning, MaxTarde: maxAfternoon
-            }];
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(configData), "Configurações");
-
-            const instData = instructors.map(i => ({ Nome: i }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instData), "Instrutores");
-
-            const holiData = Array.from(holidays.entries()).map(([data, nome]) => ({ Data: data, Nome: nome }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holiData), "Feriados");
-
-            const ucsData = ucs.map(u => ({
-                ID: u.id, Nome: u.name, DataInicio: u.startDate, 
-                CargaTotal: u.totalHours, CargaDiaria: u.dailyHours, 
-                Turno: u.shift, Professor: u.prof, Cor: u.color
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ucsData), "UnidadesCurriculares");
-
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ NomeCurso: document.getElementById('course-name').value, CargaTotalPrevista: document.getElementById('course-target-hours').value, MaxManha: maxMorning, MaxTarde: maxAfternoon }]), "Configurações");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instructors.map(i => ({ Nome: i }))), "Instrutores");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Array.from(holidays.entries()).map(([data, nome]) => ({ Data: data, Nome: nome }))), "Feriados");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ucs.map(u => ({ ID: u.id, Nome: u.name, DataInicio: u.startDate, CargaTotal: u.totalHours, CargaDiaria: u.dailyHours, Turno: u.shift, Professor: u.prof, Cor: u.color }))), "UnidadesCurriculares");
             XLSX.writeFile(wb, "cronograma_curso.xlsx");
         }
 
+        // Import local mantido
         function importExcel(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const wb = XLSX.read(data, { type: 'array' });
-
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     if (wb.Sheets["Configurações"]) {
                         const conf = XLSX.utils.sheet_to_json(wb.Sheets["Configurações"])[0];
                         if (conf) {
-                            document.getElementById('course-name').value = conf.NomeCurso || '';
-                            document.getElementById('course-target-hours').value = conf.CargaTotalPrevista || '';
-                            document.getElementById('max-morning').value = conf.MaxManha || 4;
-                            document.getElementById('max-afternoon').value = conf.MaxTarde || 4;
+                            document.getElementById('course-name').value = conf.NomeCurso || ''; document.getElementById('course-target-hours').value = conf.CargaTotalPrevista || '';
+                            document.getElementById('max-morning').value = conf.MaxManha || 4; document.getElementById('max-afternoon').value = conf.MaxTarde || 4;
                             maxMorning = parseInt(conf.MaxManha) || 4; maxAfternoon = parseInt(conf.MaxTarde) || 4;
                         }
                     }
-
-                    if (wb.Sheets["Instrutores"]) {
-                        instructors = XLSX.utils.sheet_to_json(wb.Sheets["Instrutores"]).map(i => i.Nome).filter(Boolean);
-                    } else {
-                        instructors = [];
-                    }
-
-                    if (wb.Sheets["Feriados"]) {
-                        holidays.clear();
-                        XLSX.utils.sheet_to_json(wb.Sheets["Feriados"]).forEach(h => { if(h.Data) holidays.set(h.Data, h.Nome || 'Feriado'); });
-                    }
-
+                    if (wb.Sheets["Instrutores"]) { instructors = XLSX.utils.sheet_to_json(wb.Sheets["Instrutores"]).map(i => i.Nome).filter(Boolean); } else { instructors = []; }
+                    if (wb.Sheets["Feriados"]) { holidays.clear(); XLSX.utils.sheet_to_json(wb.Sheets["Feriados"]).forEach(h => { if(h.Data) holidays.set(h.Data, h.Nome || 'Feriado'); }); }
                     if (wb.Sheets["UnidadesCurriculares"]) {
                         ucs = XLSX.utils.sheet_to_json(wb.Sheets["UnidadesCurriculares"]).map(u => ({
-                            id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(),
-                            name: u.Nome, startDate: u.DataInicio, totalHours: parseInt(u.CargaTotal),
-                            dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor,
-                            color: u.Cor || generateColor(), calculatedStart: null, calculatedEnd: null
+                            id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), name: u.Nome, startDate: u.DataInicio, totalHours: parseInt(u.CargaTotal), dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor, color: u.Cor || generateColor(), calculatedStart: null, calculatedEnd: null
                         }));
                     }
-                    
-                    cancelEdit(); 
-                    renderInstructors();
-                    renderHolidays();
-                    calculateSchedule();
-                    alert("Cronograma importado com sucesso!");
-                } catch (error) {
-                    alert("Erro ao ler o arquivo. Certifique-se de ser um arquivo exportado por este sistema.");
-                }
+                    cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); alert("Cronograma local importado com sucesso!");
+                } catch (error) { alert("Erro ao ler o arquivo."); }
                 document.getElementById('file-upload').value = '';
-            };
-            reader.readAsArrayBuffer(file);
+            }; reader.readAsArrayBuffer(file);
         }
 
-        // ================= INSTRUTORES =================
-        function addInstructor() {
-            const val = document.getElementById('instructor-name').value.trim();
-            if (val && !instructors.includes(val)) {
-                instructors.push(val);
-                document.getElementById('instructor-name').value = '';
-                renderInstructors();
-            }
-        }
-
-        function removeInstructor(name) {
-            instructors = instructors.filter(i => i !== name);
-            renderInstructors();
-            calculateSchedule(); 
-        }
-
+        function addInstructor() { const val = document.getElementById('instructor-name').value.trim(); if (val && !instructors.includes(val)) { instructors.push(val); document.getElementById('instructor-name').value = ''; renderInstructors(); } }
+        function removeInstructor(name) { instructors = instructors.filter(i => i !== name); renderInstructors(); calculateSchedule(); }
         function renderInstructors() {
-            const container = document.getElementById('instructors-list');
-            container.innerHTML = '';
-            instructors.forEach(i => {
-                const badge = document.createElement('div');
-                badge.className = 'flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-md text-xs font-semibold shadow-sm';
-                badge.innerHTML = `${i} <button onclick="removeInstructor('${i}')" class="ml-1 hover:text-purple-900 focus:outline-none">&times;</button>`;
-                container.appendChild(badge);
-            });
-
-            const select = document.getElementById('uc-prof-select');
-            const currentVal = select.value;
+            const container = document.getElementById('instructors-list'); container.innerHTML = '';
+            instructors.forEach(i => { container.innerHTML += `<div class="flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-md text-xs font-semibold shadow-sm">${i} <button onclick="removeInstructor('${i}')" class="ml-1 hover:text-purple-900 focus:outline-none">&times;</button></div>`; });
+            const select = document.getElementById('uc-prof-select'); const currentVal = select.value;
             select.innerHTML = instructors.map(i => `<option value="${i}">${i}</option>`).join('');
-            if (instructors.includes(currentVal)) select.value = currentVal;
-            
-            renderInstructorSummary();
+            if (instructors.includes(currentVal)) select.value = currentVal; renderInstructorSummary();
         }
 
-        // ================= FERIADOS =================
-        function addHoliday() {
-            const dateVal = document.getElementById('holiday-date').value;
-            let nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado / Recesso';
-            if (dateVal) {
-                holidays.set(dateVal, nameVal);
-                document.getElementById('holiday-date').value = ''; document.getElementById('holiday-name').value = '';
-                renderHolidays(); calculateSchedule();
-            }
-        }
-
-        function removeHoliday(dateStr) {
-            holidays.delete(dateStr); renderHolidays(); calculateSchedule();
-        }
-
+        function addHoliday() { const dateVal = document.getElementById('holiday-date').value; let nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado / Recesso'; if (dateVal) { holidays.set(dateVal, nameVal); document.getElementById('holiday-date').value = ''; document.getElementById('holiday-name').value = ''; renderHolidays(); calculateSchedule(); } }
+        function removeHoliday(dateStr) { holidays.delete(dateStr); renderHolidays(); calculateSchedule(); }
         function renderHolidays() {
-            const container = document.getElementById('holidays-list');
-            container.innerHTML = '';
-            
-            const sortedHolidays = Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-            
-            sortedHolidays.forEach(([date, name]) => {
-                const badge = document.createElement('div');
-                badge.className = 'flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm';
-                badge.innerHTML = `
-                    <span>${formatDateBR(date)} - <span class="font-normal">${name}</span></span>
-                    <button onclick="removeHoliday('${date}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button>
-                `;
-                container.appendChild(badge);
+            const container = document.getElementById('holidays-list'); container.innerHTML = '';
+            Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0])).forEach(([date, name]) => {
+                container.innerHTML += `<div class="flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm"><span>${formatDateBR(date)} - <span class="font-normal">${name}</span></span><button onclick="removeHoliday('${date}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button></div>`;
             });
         }
 
-        // ================= UNIDADES CURRICULARES =================
         function saveUC() {
-            const name = document.getElementById('uc-name').value.trim();
-            const startDate = document.getElementById('uc-start-date').value;
-            const totalHours = parseInt(document.getElementById('uc-total-hours').value);
-            const dailyHours = parseInt(document.getElementById('uc-daily-hours').value);
-            const shift = document.getElementById('uc-shift').value;
-            const prof = document.getElementById('uc-prof-select').value;
-
-            if (!name || !startDate || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0) {
-                alert("Preencha todos os campos da UC corretamente.");
-                return;
-            }
-
-            if (!prof) {
-                alert("Nenhum instrutor selecionado! Por favor, cadastre um instrutor primeiro.");
-                return;
-            }
-
+            const name = document.getElementById('uc-name').value.trim(); const startDate = document.getElementById('uc-start-date').value; const totalHours = parseInt(document.getElementById('uc-total-hours').value); const dailyHours = parseInt(document.getElementById('uc-daily-hours').value); const shift = document.getElementById('uc-shift').value; const prof = document.getElementById('uc-prof-select').value;
+            if (!name || !startDate || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) { alert("Preencha corretamente e adicione um instrutor."); return; }
             if (editingUcId) {
-                const ucIndex = ucs.findIndex(u => u.id === editingUcId);
-                if (ucIndex !== -1) {
-                    ucs[ucIndex].name = name;
-                    ucs[ucIndex].startDate = startDate;
-                    ucs[ucIndex].totalHours = totalHours;
-                    ucs[ucIndex].dailyHours = dailyHours;
-                    ucs[ucIndex].shift = shift;
-                    ucs[ucIndex].prof = prof;
-                }
-                cancelEdit(); 
+                const ucIndex = ucs.findIndex(u => u.id === editingUcId); if (ucIndex !== -1) { Object.assign(ucs[ucIndex], {name, startDate, totalHours, dailyHours, shift, prof}); } cancelEdit(); 
             } else {
-                ucs.push({
-                    id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof,
-                    color: generateColor(), calculatedStart: null, calculatedEnd: null
-                });
-                document.getElementById('uc-name').value = '';
-                document.getElementById('uc-total-hours').value = '';
+                ucs.push({ id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof, color: generateColor(), calculatedStart: null, calculatedEnd: null });
+                document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
             }
-
             calculateSchedule();
         }
 
         function editUC(id) {
-            const uc = ucs.find(u => u.id === id);
-            if (!uc) return;
-
-            editingUcId = id;
-            
-            document.getElementById('uc-name').value = uc.name;
-            document.getElementById('uc-start-date').value = uc.startDate;
-            document.getElementById('uc-total-hours').value = uc.totalHours;
-            document.getElementById('uc-daily-hours').value = uc.dailyHours;
-            document.getElementById('uc-shift').value = uc.shift;
-            document.getElementById('uc-prof-select').value = uc.prof;
-
+            const uc = ucs.find(u => u.id === id); if (!uc) return; editingUcId = id;
+            document.getElementById('uc-name').value = uc.name; document.getElementById('uc-start-date').value = uc.startDate;
+            document.getElementById('uc-total-hours').value = uc.totalHours; document.getElementById('uc-daily-hours').value = uc.dailyHours;
+            document.getElementById('uc-shift').value = uc.shift; document.getElementById('uc-prof-select').value = uc.prof;
             document.getElementById('uc-form-container').classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
-            
-            const btnSave = document.getElementById('btn-save-uc');
-            btnSave.innerText = "Salvar Alterações";
-            btnSave.className = "flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm";
-            
-            document.getElementById('btn-cancel-edit').classList.remove('hidden');
-            document.getElementById('uc-form-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('btn-save-uc').innerText = "Salvar Alterações"; document.getElementById('btn-save-uc').className = "flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm";
+            document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('uc-form-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-
         function cancelEdit() {
-            editingUcId = null;
-            document.getElementById('uc-name').value = '';
-            document.getElementById('uc-total-hours').value = '';
-            
+            editingUcId = null; document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
-
-            const btnSave = document.getElementById('btn-save-uc');
-            btnSave.innerText = "Adicionar UC na Grade";
-            btnSave.className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
-            
+            document.getElementById('btn-save-uc').innerText = "Adicionar UC"; document.getElementById('btn-save-uc').className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
             document.getElementById('btn-cancel-edit').classList.add('hidden');
         }
+        function removeUC(id) { if(confirm("Excluir UC?")) { if (editingUcId === id) cancelEdit(); ucs = ucs.filter(uc => uc.id !== id); calculateSchedule(); } }
 
-        function removeUC(id) {
-            if(confirm("Tem certeza que deseja excluir esta Unidade Curricular?")) {
-                if (editingUcId === id) cancelEdit(); 
-                ucs = ucs.filter(uc => uc.id !== id);
-                calculateSchedule();
-            }
-        }
-
-        // ================= MOTOR DE CÁLCULO =================
         function calculateSchedule() {
-            schedule = {};
-            let totalHoursCounter = 0;
-            
-            ucs.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
+            schedule = {}; let totalHoursCounter = 0; ucs.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
             ucs.forEach(uc => {
-                uc.calculatedStart = null;
-                uc.calculatedEnd = null;
-                totalHoursCounter += uc.totalHours;
-                
-                let hoursToAllocate = uc.totalHours;
-                const [y, m, d] = uc.startDate.split('-');
-                let currentDate = new Date(y, m - 1, d);
-
+                uc.calculatedStart = null; uc.calculatedEnd = null; totalHoursCounter += uc.totalHours;
+                let hoursToAllocate = uc.totalHours; const [y, m, d] = uc.startDate.split('-'); let currentDate = new Date(y, m - 1, d);
                 while (hoursToAllocate > 0) {
-                    const dateStr = toDateString(currentDate);
-                    const dayOfWeek = currentDate.getDay(); 
-                    
-                    if (dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)) {
-                        currentDate.setDate(currentDate.getDate() + 1);
-                        continue;
-                    }
-
+                    const dateStr = toDateString(currentDate); const dayOfWeek = currentDate.getDay(); 
+                    if (dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)) { currentDate.setDate(currentDate.getDate() + 1); continue; }
                     if (!schedule[dateStr]) schedule[dateStr] = { manha: 0, tarde: 0, ucs: [] };
-
                     let allocatedHere = 0;
-                    
-                    if (uc.shift === 'Manhã') {
-                        let available = maxMorning - schedule[dateStr].manha;
-                        let canAllocate = Math.min(uc.dailyHours, available, hoursToAllocate);
-                        if (canAllocate > 0) { schedule[dateStr].manha += canAllocate; allocatedHere = canAllocate; }
-                    } 
-                    else if (uc.shift === 'Tarde') {
-                        let available = maxAfternoon - schedule[dateStr].tarde;
-                        let canAllocate = Math.min(uc.dailyHours, available, hoursToAllocate);
-                        if (canAllocate > 0) { schedule[dateStr].tarde += canAllocate; allocatedHere = canAllocate; }
-                    } 
+                    if (uc.shift === 'Manhã') { let canAllocate = Math.min(uc.dailyHours, maxMorning - schedule[dateStr].manha, hoursToAllocate); if (canAllocate > 0) { schedule[dateStr].manha += canAllocate; allocatedHere = canAllocate; } } 
+                    else if (uc.shift === 'Tarde') { let canAllocate = Math.min(uc.dailyHours, maxAfternoon - schedule[dateStr].tarde, hoursToAllocate); if (canAllocate > 0) { schedule[dateStr].tarde += canAllocate; allocatedHere = canAllocate; } } 
                     else if (uc.shift === 'Integral') {
-                        let availableManha = maxMorning - schedule[dateStr].manha;
-                        let availableTarde = maxAfternoon - schedule[dateStr].tarde;
-                        let totalAvailable = availableManha + availableTarde;
-                        
-                        let canAllocate = Math.min(uc.dailyHours, totalAvailable, hoursToAllocate);
-                        if (canAllocate > 0) {
-                            let toManha = Math.min(canAllocate, availableManha);
-                            let toTarde = canAllocate - toManha;
-                            schedule[dateStr].manha += toManha; schedule[dateStr].tarde += toTarde;
-                            allocatedHere = canAllocate;
-                        }
+                        let availM = maxMorning - schedule[dateStr].manha; let availT = maxAfternoon - schedule[dateStr].tarde;
+                        let canAllocate = Math.min(uc.dailyHours, availM + availT, hoursToAllocate);
+                        if (canAllocate > 0) { let toM = Math.min(canAllocate, availM); let toT = canAllocate - toM; schedule[dateStr].manha += toM; schedule[dateStr].tarde += toT; allocatedHere = canAllocate; }
                     }
-
                     if (allocatedHere > 0) {
-                        schedule[dateStr].ucs.push({
-                            id: uc.id, name: uc.name, hours: allocatedHere, color: uc.color, shift: uc.shift
-                        });
-                        hoursToAllocate -= allocatedHere;
-                        if (!uc.calculatedStart) uc.calculatedStart = dateStr;
-                        uc.calculatedEnd = dateStr;
+                        schedule[dateStr].ucs.push({ id: uc.id, name: uc.name, hours: allocatedHere, color: uc.color, shift: uc.shift });
+                        hoursToAllocate -= allocatedHere; if (!uc.calculatedStart) uc.calculatedStart = dateStr; uc.calculatedEnd = dateStr;
                     }
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
             });
-
             document.getElementById('total-hours-display').innerText = `${totalHoursCounter}h Alocadas`;
-            renderUCs();
-            renderCalendar();
-            renderInstructorSummary();
+            renderUCs(); renderCalendar(); renderInstructorSummary();
         }
 
-        // ================= RENDERIZAÇÕES =================
         function renderUCs() {
-            const container = document.getElementById('ucs-list');
-            container.innerHTML = '';
-
+            const container = document.getElementById('ucs-list'); container.innerHTML = '';
             ucs.forEach(uc => {
-                const card = document.createElement('div');
-                card.className = 'p-3 rounded-lg border border-slate-200 bg-white relative shadow-sm';
                 const shiftColor = uc.shift === 'Manhã' ? 'text-amber-500' : (uc.shift === 'Tarde' ? 'text-indigo-500' : 'text-emerald-500');
-
-                card.innerHTML = `
-                    <div class="absolute left-0 top-0 bottom-0 w-2 rounded-l-lg" style="background-color: ${uc.color}"></div>
-                    <div class="pl-3">
-                        <div class="flex justify-between items-start gap-2">
-                            <h3 class="font-bold text-sm text-slate-800 flex-1 break-words leading-tight mt-1">${uc.name}</h3>
-                            <div class="flex gap-2 shrink-0">
-                                <button onclick="editUC('${uc.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors focus:outline-none" title="Editar UC">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                </button>
-                                <button onclick="removeUC('${uc.id}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors focus:outline-none" title="Excluir UC">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">Instrutor: <span class="font-bold text-slate-700">${uc.prof}</span></p>
-                        <p class="text-[11px] font-semibold text-slate-500 mt-0.5">
-                            ${uc.totalHours}h totais • ${uc.dailyHours}h/dia • <span class="${shiftColor}">${uc.shift}</span>
-                        </p>
-                        ${uc.calculatedStart ? `
-                            <div class="mt-2 bg-slate-50 border border-slate-100 p-2 rounded text-xs flex justify-between shadow-inner">
-                                <div><span class="text-slate-400">Início:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedStart)}</b></div>
-                                <div><span class="text-slate-400">Fim:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedEnd)}</b></div>
-                            </div>
-                        ` : `
-                            <div class="mt-2 bg-red-50 text-red-600 border border-red-100 p-2 rounded text-xs font-semibold text-center">
-                                Não há espaço na agenda para esta UC.
-                            </div>
-                        `}
-                    </div>
-                `;
-                container.appendChild(card);
+                container.innerHTML += `
+                    <div class="p-3 rounded-lg border border-slate-200 bg-white relative shadow-sm">
+                        <div class="absolute left-0 top-0 bottom-0 w-2 rounded-l-lg" style="background-color: ${uc.color}"></div>
+                        <div class="pl-3">
+                            <div class="flex justify-between items-start gap-2"><h3 class="font-bold text-sm text-slate-800 flex-1 break-words leading-tight mt-1">${uc.name}</h3>
+                            <div class="flex gap-2 shrink-0"><button onclick="editUC('${uc.id}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded focus:outline-none"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button onclick="removeUC('${uc.id}')" class="text-red-500 hover:bg-red-50 p-1.5 rounded focus:outline-none"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div>
+                            <p class="text-xs text-slate-500 mt-1">Instrutor: <span class="font-bold text-slate-700">${uc.prof}</span></p>
+                            <p class="text-[11px] font-semibold text-slate-500 mt-0.5">${uc.totalHours}h totais • ${uc.dailyHours}h/dia • <span class="${shiftColor}">${uc.shift}</span></p>
+                            ${uc.calculatedStart ? `<div class="mt-2 bg-slate-50 border border-slate-100 p-2 rounded text-xs flex justify-between shadow-inner"><div><span class="text-slate-400">Início:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedStart)}</b></div><div><span class="text-slate-400">Fim:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedEnd)}</b></div></div>` : `<div class="mt-2 bg-red-50 text-red-600 border border-red-100 p-2 rounded text-xs font-semibold text-center">Sem agenda.</div>`}
+                        </div></div>`;
             });
         }
 
-        // ====== RENDERIZADOR DINÂMICO DE MESES ======
         function renderCalendar() {
-            const container = document.getElementById('calendar-grid');
-            const btnContainer = document.getElementById('year-buttons');
-            
-            container.innerHTML = '';
-            btnContainer.innerHTML = '';
-
-            if (ucs.length === 0) {
-                // Estado Vazio Elegante
-                container.innerHTML = `
-                    <div class="col-span-full flex flex-col items-center justify-center text-slate-400 py-24">
-                        <svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        <p class="text-lg font-semibold text-slate-500">Nenhum mês gerado</p>
-                        <p class="text-sm mt-1">O calendário aparecerá automaticamente assim que você adicionar a primeira Unidade Curricular.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Descobre o primeiro mês e o último mês necessários
-            let minDateObj = null;
-            let maxDateObj = null;
-
+            const container = document.getElementById('calendar-grid'); const btnContainer = document.getElementById('year-buttons'); container.innerHTML = ''; btnContainer.innerHTML = '';
+            if (ucs.length === 0) { container.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center text-slate-400 py-24"><svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-lg font-semibold text-slate-500">Nenhum mês gerado</p></div>`; return; }
+            let minD = null, maxD = null;
             ucs.forEach(uc => {
-                if (uc.calculatedStart) {
-                    const [sy, sm, sd] = uc.calculatedStart.split('-').map(Number);
-                    const startD = new Date(sy, sm - 1, sd);
-                    if (!minDateObj || startD < minDateObj) minDateObj = startD;
-                }
-                if (uc.calculatedEnd) {
-                    const [ey, em, ed] = uc.calculatedEnd.split('-').map(Number);
-                    const endD = new Date(ey, em - 1, ed);
-                    if (!maxDateObj || endD > maxDateObj) maxDateObj = endD;
-                }
+                if (uc.calculatedStart) { const d = new Date(uc.calculatedStart.split('-')[0], uc.calculatedStart.split('-')[1]-1, uc.calculatedStart.split('-')[2]); if(!minD||d<minD) minD=d; }
+                if (uc.calculatedEnd) { const d = new Date(uc.calculatedEnd.split('-')[0], uc.calculatedEnd.split('-')[1]-1, uc.calculatedEnd.split('-')[2]); if(!maxD||d>maxD) maxD=d; }
             });
+            if (!minD || !maxD) { container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Sem carga horária. Aumente a capacidade diária.</div>'; return; }
 
-            // Se não conseguiu agendar nada por falta de carga
-            if (!minDateObj || !maxDateObj) {
-                container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Não há carga horária diária disponível para agendar a(s) UC(s). Aumente a capacidade.</div>';
-                return;
-            }
+            let currentY = minD.getFullYear(), currentM = minD.getMonth(), endY = maxD.getFullYear(), endM = maxD.getMonth(), monthsToRender = [];
+            while (currentY < endY || (currentY === endY && currentM <= endM)) { monthsToRender.push({ year: currentY, month: currentM }); currentM++; if (currentM > 11) { currentM = 0; currentY++; } }
+            [...new Set(monthsToRender.map(m => m.year))].forEach(y => btnContainer.innerHTML += `<button onclick="scrollToYear(${y})" class="px-3 py-1 bg-white border border-slate-300 rounded shadow-sm text-sm font-semibold hover:bg-slate-100">${y}</button>`);
 
-            let startY = minDateObj.getFullYear();
-            let startM = minDateObj.getMonth();
-            let endY = maxDateObj.getFullYear();
-            let endM = maxDateObj.getMonth();
-
-            let monthsToRender = [];
-            let currentY = startY;
-            let currentM = startM;
-
-            // Cria lista de todos os meses entre o início e o fim
-            while (currentY < endY || (currentY === endY && currentM <= endM)) {
-                monthsToRender.push({ year: currentY, month: currentM });
-                currentM++;
-                if (currentM > 11) {
-                    currentM = 0;
-                    currentY++;
-                }
-            }
-
-            // Cria botões dinâmicos de anos
-            const activeYears = [...new Set(monthsToRender.map(m => m.year))];
-            activeYears.forEach(y => {
-                btnContainer.innerHTML += `<button onclick="scrollToYear(${y})" class="px-3 py-1 bg-white border border-slate-300 rounded shadow-sm text-sm font-semibold hover:bg-slate-100">${y}</button>`;
-            });
-
-            const monthsPT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            const daysPT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-
-            // Desenha apenas os meses necessários
             monthsToRender.forEach(({year, month}) => {
-                const monthDiv = document.createElement('div');
-                monthDiv.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm';
-                monthDiv.id = `month-${year}-${month}`;
-
-                const header = document.createElement('h3');
-                header.className = 'font-bold text-slate-800 text-center mb-3';
-                header.innerText = `${monthsPT[month]} ${year}`;
-                monthDiv.appendChild(header);
-
-                const grid = document.createElement('div');
-                grid.className = 'month-grid';
-
-                daysPT.forEach(d => {
-                    const dHeader = document.createElement('div');
-                    dHeader.className = 'day-header';
-                    dHeader.innerText = d;
-                    grid.appendChild(dHeader);
-                });
-
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                for (let i = 0; i < firstDay; i++) {
-                    grid.appendChild(document.createElement('div'));
-                }
-
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const cell = document.createElement('div');
-                    const dateObj = new Date(year, month, day);
-                    const dateStr = toDateString(dateObj);
-                    const dayOfWeek = dateObj.getDay();
-
-                    cell.className = 'day-cell';
-                    cell.innerHTML = `<span class="day-number">${day}</span>`;
-
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        cell.classList.add('weekend');
-                    }
-
-                    if (holidays.has(dateStr)) {
-                        cell.classList.add('holiday');
-                        cell.title = `Feriado: ${holidays.get(dateStr)}`;
-                    }
-
+                const monthDiv = document.createElement('div'); monthDiv.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm'; monthDiv.id = `month-${year}-${month}`;
+                monthDiv.innerHTML = `<h3 class="font-bold text-slate-800 text-center mb-3">${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][month]} ${year}</h3>`;
+                const grid = document.createElement('div'); grid.className = 'month-grid';
+                ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach(d => grid.innerHTML += `<div class="day-header">${d}</div>`);
+                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) grid.appendChild(document.createElement('div'));
+                for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day++) {
+                    const dateStr = toDateString(new Date(year, month, day)), dayOfWeek = new Date(year, month, day).getDay();
+                    const cell = document.createElement('div'); cell.className = 'day-cell'; cell.innerHTML = `<span class="day-number">${day}</span>`;
+                    if (dayOfWeek === 0 || dayOfWeek === 6) cell.classList.add('weekend');
+                    if (holidays.has(dateStr)) { cell.classList.add('holiday'); cell.title = `Feriado: ${holidays.get(dateStr)}`; }
                     if (schedule[dateStr] && schedule[dateStr].ucs.length > 0) {
-                        cell.classList.add('has-class');
-                        
-                        const allocs = schedule[dateStr].ucs;
-                        if (allocs.length === 1) {
-                            cell.style.backgroundColor = allocs[0].color;
-                            cell.title = `${allocs[0].name} (${allocs[0].hours}h) - ${allocs[0].shift}`;
-                        } else {
-                            allocs.sort((a, b) => {
-                                const order = { 'Manhã': 1, 'Integral': 2, 'Tarde': 3 };
-                                return order[a.shift] - order[b.shift];
-                            });
-
-                            let stops = [];
-                            let currentPct = 0;
-                            let totalDayHours = allocs.reduce((sum, u) => sum + u.hours, 0);
-                            
-                            allocs.forEach(al => {
-                                const pct = (al.hours / totalDayHours) * 100;
-                                stops.push(`${al.color} ${currentPct}%`);
-                                currentPct += pct;
-                                stops.push(`${al.color} ${currentPct}%`);
-                            });
-                            
-                            cell.style.background = `linear-gradient(135deg, ${stops.join(', ')})`;
-                            cell.title = allocs.map(al => `${al.name} (${al.hours}h - ${al.shift})`).join('  |  ');
+                        cell.classList.add('has-class'); const allocs = schedule[dateStr].ucs;
+                        if (allocs.length === 1) { cell.style.backgroundColor = allocs[0].color; cell.title = `${allocs[0].name} (${allocs[0].hours}h) - ${allocs[0].shift}`; } 
+                        else {
+                            allocs.sort((a, b) => ({'Manhã':1, 'Integral':2, 'Tarde':3}[a.shift] - {'Manhã':1, 'Integral':2, 'Tarde':3}[b.shift]));
+                            let stops = [], pct = 0; const total = allocs.reduce((s, u) => s + u.hours, 0);
+                            allocs.forEach(al => { const p = (al.hours / total) * 100; stops.push(`${al.color} ${pct}%`); pct += p; stops.push(`${al.color} ${pct}%`); });
+                            cell.style.background = `linear-gradient(135deg, ${stops.join(', ')})`; cell.title = allocs.map(al => `${al.name} (${al.hours}h - ${al.shift})`).join(' | ');
                         }
                     }
-
                     grid.appendChild(cell);
                 }
-
-                monthDiv.appendChild(grid);
-                container.appendChild(monthDiv);
+                monthDiv.appendChild(grid); container.appendChild(monthDiv);
             });
         }
 
         function renderInstructorSummary() {
-            const container = document.getElementById('instructor-summary');
-            container.innerHTML = '';
-            
-            if (instructors.length === 0) {
-                container.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhum instrutor cadastrado.</p>';
-                return;
-            }
-
+            const container = document.getElementById('instructor-summary'); container.innerHTML = '';
+            if (instructors.length === 0) { container.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhum instrutor cadastrado.</p>'; return; }
             instructors.forEach(prof => {
                 const profUcs = ucs.filter(u => u.prof === prof);
-                const card = document.createElement('div');
-                card.className = 'border border-slate-200 rounded-lg overflow-hidden';
-                
-                let listHtml = '';
-                if (profUcs.length === 0) {
-                    listHtml = '<div class="p-4 text-sm text-slate-400 italic bg-slate-50">Sem UCs atribuídas.</div>';
-                } else {
-                    listHtml = '<ul class="divide-y divide-slate-100">';
-                    profUcs.forEach(uc => {
-                        const datesInfo = uc.calculatedStart 
-                            ? `${formatDateBR(uc.calculatedStart)} a ${formatDateBR(uc.calculatedEnd)}`
-                            : `<span class="text-red-500">Erro de Agendamento</span>`;
-                            
-                        listHtml += `
-                            <li class="p-3 hover:bg-slate-50 transition-colors">
-                                <div class="flex justify-between items-start mb-1">
-                                    <span class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                        <div class="w-2.5 h-2.5 rounded-full" style="background-color: ${uc.color}"></div>
-                                        ${uc.name}
-                                    </span>
-                                    <span class="text-xs font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-500">${uc.totalHours}h</span>
-                                </div>
-                                <div class="pl-4 text-xs text-slate-500 flex justify-between">
-                                    <span>${datesInfo}</span>
-                                    <span class="uppercase tracking-wider font-semibold">${uc.shift}</span>
-                                </div>
-                            </li>
-                        `;
-                    });
-                    listHtml += '</ul>';
-                }
-
-                card.innerHTML = `
-                    <div class="bg-purple-50 text-purple-800 font-bold px-4 py-2 border-b border-purple-100 flex justify-between items-center">
-                        ${prof}
-                        <span class="bg-purple-200 text-purple-800 text-[10px] px-2 py-0.5 rounded-full">${profUcs.length} UCs</span>
-                    </div>
-                    ${listHtml}
-                `;
-                container.appendChild(card);
+                let listHtml = profUcs.length === 0 ? '<div class="p-4 text-sm text-slate-400 italic bg-slate-50">Sem UCs atribuídas.</div>' : '<ul class="divide-y divide-slate-100">' + profUcs.map(uc => `<li class="p-3 hover:bg-slate-50 transition-colors"><div class="flex justify-between items-start mb-1"><span class="font-bold text-sm text-slate-800 flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full" style="background-color: ${uc.color}"></div>${uc.name}</span><span class="text-xs font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-500">${uc.totalHours}h</span></div><div class="pl-4 text-xs text-slate-500 flex justify-between"><span>${uc.calculatedStart ? `${formatDateBR(uc.calculatedStart)} a${formatDateBR(uc.calculatedEnd)}` : '<span class="text-red-500">Erro de Agendamento</span>'}</span><span class="uppercase tracking-wider font-semibold">${uc.shift}</span></div></li>`).join('') + '</ul>';
+                container.innerHTML += `<div class="border border-slate-200 rounded-lg overflow-hidden"><div class="bg-purple-50 text-purple-800 font-bold px-4 py-2 border-b border-purple-100 flex justify-between items-center">${prof}<span class="bg-purple-200 text-purple-800 text-[10px] px-2 py-0.5 rounded-full">${profUcs.length} UCs</span></div>${listHtml}</div>`;
             });
         }
 
-        // Quando tem anos muito distantes, isso garante que ao clicar no botão do ano, vá pro primeiro mês daquele ano gerado
-        function scrollToYear(year) {
-            for(let m=0; m<12; m++){
-                const target = document.getElementById(`month-${year}-${m}`);
-                if(target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return;
-                }
-            }
-        }
+        function scrollToYear(year) { for(let m=0; m<12; m++){ const target = document.getElementById(`month-${year}-${m}`); if(target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } }
 
-        // START (Carrega configurações limpas)
-        renderInstructors();
-        renderHolidays();
-        calculateSchedule();
-
+        // Inicializa Limpo
+        renderInstructors(); renderHolidays(); calculateSchedule();
     </script>
 </body>
 </html>
