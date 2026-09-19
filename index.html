@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendário de Curso - Dinâmico</title>
+    <title>Calendário de Curso - SENAI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -36,27 +36,32 @@
 
     <div class="max-w-[1400px] mx-auto p-4 md:p-6 h-screen flex flex-col">
         
-        <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
-            <h1 class="text-2xl font-bold text-slate-800">Planejador de Cronograma Escolar</h1>
+        <!-- CABEÇALHO COM LOGO -->
+        <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Logo_SENAI.svg" alt="Logo SENAI" class="h-8 md:h-10 object-contain">
+                <div class="w-px h-10 bg-slate-300 hidden sm:block"></div>
+                <h1 class="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Planejador de Cronograma</h1>
+            </div>
             
-            <div class="flex gap-1 bg-white p-1.5 rounded-lg border border-slate-300 shadow-sm">
+            <div class="flex gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
                 <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
                 
-                <button onclick="newDocument()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded transition-colors" title="Criar um novo cronograma em branco">
+                <button onclick="newDocument()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Criar um novo cronograma em branco">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Novo
                 </button>
                 
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
-                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded transition-colors" title="Abrir um cronograma salvo">
+                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Abrir um cronograma salvo">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 002 2h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5zM5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14"></path></svg>
                     Abrir
                 </button>
                 
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
-                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Salvar cronograma atual">
+                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 rounded transition-all" title="Salvar cronograma atual">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                     Salvar
                 </button>
@@ -68,38 +73,37 @@
             <!-- PAINEL LATERAL (CONTROLES) -->
             <div class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 calendar-scroll">
                 
-                <!-- Informações do Curso -->
+                <!-- Informações do Curso e Capacidade (AGRUPADOS) -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         Identificação do Curso
                     </h2>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nome do Curso</label>
-                            <input type="text" id="course-name" placeholder="Ex: Técnico em Eletrotécnica" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nome do Curso</label>
+                                <input type="text" id="course-name" placeholder="Ex: Eletrotécnica" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Carga Prevista (h)</label>
+                                <input type="number" id="course-target-hours" placeholder="Ex: 1200" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Carga Horária Total Prevista (h)</label>
-                            <input type="number" id="course-target-hours" placeholder="Ex: 1200" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Capacidade da Escola -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        Capacidade Diária da Escola
-                    </h2>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Capacidade Manhã</label>
-                            <input type="number" id="max-morning" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" title="Horas disponíveis na manhã">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Capacidade Tarde</label>
-                            <input type="number" id="max-afternoon" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" title="Horas disponíveis na tarde">
+                        <!-- Capacidade Diária fundida aqui -->
+                        <div class="border-t border-slate-100 pt-3">
+                            <h3 class="text-[11px] font-bold text-slate-500 uppercase mb-2">Capacidade Diária do Curso</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Manhã (Horas)</label>
+                                    <input type="number" id="max-morning" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tarde (Horas)</label>
+                                    <input type="number" id="max-afternoon" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -208,13 +212,13 @@
                     <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                         <h2 class="font-bold text-lg text-slate-800">Calendário de Execução</h2>
                         <div class="flex gap-2" id="year-buttons">
-                            <!-- Gerado dinamicamente via JS -->
+                            <!-- Gerado dinamicamente via JS se houver UCs -->
                         </div>
                     </div>
                     
-                    <div class="p-6 overflow-y-auto h-[600px] calendar-scroll" id="calendar-container">
+                    <div class="p-6 overflow-y-auto h-[600px] calendar-scroll relative" id="calendar-container">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="calendar-grid">
-                            <!-- Meses gerados via JS -->
+                            <!-- Meses gerados via JS de forma dinâmica -->
                         </div>
                     </div>
                 </div>
@@ -240,7 +244,7 @@
         // ================= ESTADO GLOBAL =================
         let maxMorning = 4;
         let maxAfternoon = 4;
-        let instructors = []; // Começa vazio
+        let instructors = []; // Inicia completamente vazio
         let editingUcId = null; 
         
         let holidays = new Map([
@@ -260,7 +264,7 @@
 
         // ================= FUNÇÃO: NOVO DOCUMENTO =================
         function newDocument() {
-            if(confirm("Tem certeza que deseja criar um novo calendário? Todo o progresso não salvo será perdido.")) {
+            if(confirm("Tem certeza que deseja criar um novo cronograma? Todo o progresso não salvo será perdido.")) {
                 document.getElementById('course-name').value = '';
                 document.getElementById('course-target-hours').value = '';
                 document.getElementById('max-morning').value = 4;
@@ -270,6 +274,7 @@
 
                 instructors = [];
                 
+                // Reseta os feriados base (2026 e 2027)
                 holidays = new Map([
                     ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
                     ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
@@ -469,8 +474,13 @@
             const shift = document.getElementById('uc-shift').value;
             const prof = document.getElementById('uc-prof-select').value;
 
-            if (!name || !startDate || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) {
-                alert("Preencha todos os campos da UC corretamente. Verifique se o professor foi selecionado.");
+            if (!name || !startDate || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0) {
+                alert("Preencha todos os campos da UC corretamente.");
+                return;
+            }
+
+            if (!prof) {
+                alert("Nenhum instrutor selecionado! Por favor, cadastre um instrutor primeiro.");
                 return;
             }
 
@@ -657,121 +667,157 @@
             });
         }
 
+        // ====== RENDERIZADOR DINÂMICO DE MESES ======
         function renderCalendar() {
             const container = document.getElementById('calendar-grid');
+            const btnContainer = document.getElementById('year-buttons');
+            
             container.innerHTML = '';
-            
-            // Calcula os anos dinamicamente baseados nas UCs
-            let minYear = 2026;
-            let maxYear = 2026;
-            
+            btnContainer.innerHTML = '';
+
+            if (ucs.length === 0) {
+                // Estado Vazio Elegante
+                container.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center text-slate-400 py-24">
+                        <svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <p class="text-lg font-semibold text-slate-500">Nenhum mês gerado</p>
+                        <p class="text-sm mt-1">O calendário aparecerá automaticamente assim que você adicionar a primeira Unidade Curricular.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Descobre o primeiro mês e o último mês necessários
+            let minDateObj = null;
+            let maxDateObj = null;
+
             ucs.forEach(uc => {
-                if (uc.startDate) {
-                    const y = parseInt(uc.startDate.split('-')[0]);
-                    if (y < minYear) minYear = y;
-                    if (y > maxYear) maxYear = y;
+                if (uc.calculatedStart) {
+                    const [sy, sm, sd] = uc.calculatedStart.split('-').map(Number);
+                    const startD = new Date(sy, sm - 1, sd);
+                    if (!minDateObj || startD < minDateObj) minDateObj = startD;
                 }
                 if (uc.calculatedEnd) {
-                    const y = parseInt(uc.calculatedEnd.split('-')[0]);
-                    if (y < minYear) minYear = y;
-                    if (y > maxYear) maxYear = y;
+                    const [ey, em, ed] = uc.calculatedEnd.split('-').map(Number);
+                    const endD = new Date(ey, em - 1, ed);
+                    if (!maxDateObj || endD > maxDateObj) maxDateObj = endD;
                 }
             });
 
-            const years = [];
-            for (let y = minYear; y <= maxYear; y++) years.push(y);
+            // Se não conseguiu agendar nada por falta de carga
+            if (!minDateObj || !maxDateObj) {
+                container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Não há carga horária diária disponível para agendar a(s) UC(s). Aumente a capacidade.</div>';
+                return;
+            }
 
-            // Atualiza botões de navegação dos anos dinamicamente
-            const btnContainer = document.getElementById('year-buttons');
-            btnContainer.innerHTML = '';
-            years.forEach(y => {
-                btnContainer.innerHTML += `<button onclick="scrollToYear(${y})" class="px-3 py-1.5 bg-white border border-slate-300 rounded shadow-sm text-sm font-semibold hover:bg-slate-100">${y}</button>`;
+            let startY = minDateObj.getFullYear();
+            let startM = minDateObj.getMonth();
+            let endY = maxDateObj.getFullYear();
+            let endM = maxDateObj.getMonth();
+
+            let monthsToRender = [];
+            let currentY = startY;
+            let currentM = startM;
+
+            // Cria lista de todos os meses entre o início e o fim
+            while (currentY < endY || (currentY === endY && currentM <= endM)) {
+                monthsToRender.push({ year: currentY, month: currentM });
+                currentM++;
+                if (currentM > 11) {
+                    currentM = 0;
+                    currentY++;
+                }
+            }
+
+            // Cria botões dinâmicos de anos
+            const activeYears = [...new Set(monthsToRender.map(m => m.year))];
+            activeYears.forEach(y => {
+                btnContainer.innerHTML += `<button onclick="scrollToYear(${y})" class="px-3 py-1 bg-white border border-slate-300 rounded shadow-sm text-sm font-semibold hover:bg-slate-100">${y}</button>`;
             });
 
             const monthsPT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             const daysPT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-            years.forEach(year => {
-                for (let month = 0; month < 12; month++) {
-                    const monthDiv = document.createElement('div');
-                    monthDiv.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm';
-                    monthDiv.id = `month-${year}-${month}`;
+            // Desenha apenas os meses necessários
+            monthsToRender.forEach(({year, month}) => {
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm';
+                monthDiv.id = `month-${year}-${month}`;
 
-                    const header = document.createElement('h3');
-                    header.className = 'font-bold text-slate-800 text-center mb-3';
-                    header.innerText = `${monthsPT[month]} ${year}`;
-                    monthDiv.appendChild(header);
+                const header = document.createElement('h3');
+                header.className = 'font-bold text-slate-800 text-center mb-3';
+                header.innerText = `${monthsPT[month]} ${year}`;
+                monthDiv.appendChild(header);
 
-                    const grid = document.createElement('div');
-                    grid.className = 'month-grid';
+                const grid = document.createElement('div');
+                grid.className = 'month-grid';
 
-                    daysPT.forEach(d => {
-                        const dHeader = document.createElement('div');
-                        dHeader.className = 'day-header';
-                        dHeader.innerText = d;
-                        grid.appendChild(dHeader);
-                    });
+                daysPT.forEach(d => {
+                    const dHeader = document.createElement('div');
+                    dHeader.className = 'day-header';
+                    dHeader.innerText = d;
+                    grid.appendChild(dHeader);
+                });
 
-                    const firstDay = new Date(year, month, 1).getDay();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-                    for (let i = 0; i < firstDay; i++) {
-                        grid.appendChild(document.createElement('div'));
-                    }
-
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const cell = document.createElement('div');
-                        const dateObj = new Date(year, month, day);
-                        const dateStr = toDateString(dateObj);
-                        const dayOfWeek = dateObj.getDay();
-
-                        cell.className = 'day-cell';
-                        cell.innerHTML = `<span class="day-number">${day}</span>`;
-
-                        if (dayOfWeek === 0 || dayOfWeek === 6) {
-                            cell.classList.add('weekend');
-                        }
-
-                        if (holidays.has(dateStr)) {
-                            cell.classList.add('holiday');
-                            cell.title = `Feriado: ${holidays.get(dateStr)}`;
-                        }
-
-                        if (schedule[dateStr] && schedule[dateStr].ucs.length > 0) {
-                            cell.classList.add('has-class');
-                            
-                            const allocs = schedule[dateStr].ucs;
-                            if (allocs.length === 1) {
-                                cell.style.backgroundColor = allocs[0].color;
-                                cell.title = `${allocs[0].name} (${allocs[0].hours}h) - ${allocs[0].shift}`;
-                            } else {
-                                allocs.sort((a, b) => {
-                                    const order = { 'Manhã': 1, 'Integral': 2, 'Tarde': 3 };
-                                    return order[a.shift] - order[b.shift];
-                                });
-
-                                let stops = [];
-                                let currentPct = 0;
-                                let totalDayHours = allocs.reduce((sum, u) => sum + u.hours, 0);
-                                
-                                allocs.forEach(al => {
-                                    const pct = (al.hours / totalDayHours) * 100;
-                                    stops.push(`${al.color} ${currentPct}%`);
-                                    currentPct += pct;
-                                    stops.push(`${al.color} ${currentPct}%`);
-                                });
-                                
-                                cell.style.background = `linear-gradient(135deg, ${stops.join(', ')})`;
-                                cell.title = allocs.map(al => `${al.name} (${al.hours}h - ${al.shift})`).join('  |  ');
-                            }
-                        }
-
-                        grid.appendChild(cell);
-                    }
-
-                    monthDiv.appendChild(grid);
-                    container.appendChild(monthDiv);
+                for (let i = 0; i < firstDay; i++) {
+                    grid.appendChild(document.createElement('div'));
                 }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cell = document.createElement('div');
+                    const dateObj = new Date(year, month, day);
+                    const dateStr = toDateString(dateObj);
+                    const dayOfWeek = dateObj.getDay();
+
+                    cell.className = 'day-cell';
+                    cell.innerHTML = `<span class="day-number">${day}</span>`;
+
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        cell.classList.add('weekend');
+                    }
+
+                    if (holidays.has(dateStr)) {
+                        cell.classList.add('holiday');
+                        cell.title = `Feriado: ${holidays.get(dateStr)}`;
+                    }
+
+                    if (schedule[dateStr] && schedule[dateStr].ucs.length > 0) {
+                        cell.classList.add('has-class');
+                        
+                        const allocs = schedule[dateStr].ucs;
+                        if (allocs.length === 1) {
+                            cell.style.backgroundColor = allocs[0].color;
+                            cell.title = `${allocs[0].name} (${allocs[0].hours}h) - ${allocs[0].shift}`;
+                        } else {
+                            allocs.sort((a, b) => {
+                                const order = { 'Manhã': 1, 'Integral': 2, 'Tarde': 3 };
+                                return order[a.shift] - order[b.shift];
+                            });
+
+                            let stops = [];
+                            let currentPct = 0;
+                            let totalDayHours = allocs.reduce((sum, u) => sum + u.hours, 0);
+                            
+                            allocs.forEach(al => {
+                                const pct = (al.hours / totalDayHours) * 100;
+                                stops.push(`${al.color} ${currentPct}%`);
+                                currentPct += pct;
+                                stops.push(`${al.color} ${currentPct}%`);
+                            });
+                            
+                            cell.style.background = `linear-gradient(135deg, ${stops.join(', ')})`;
+                            cell.title = allocs.map(al => `${al.name} (${al.hours}h - ${al.shift})`).join('  |  ');
+                        }
+                    }
+
+                    grid.appendChild(cell);
+                }
+
+                monthDiv.appendChild(grid);
+                container.appendChild(monthDiv);
             });
         }
 
@@ -829,12 +875,18 @@
             });
         }
 
+        // Quando tem anos muito distantes, isso garante que ao clicar no botão do ano, vá pro primeiro mês daquele ano gerado
         function scrollToYear(year) {
-            const target = document.getElementById(`month-${year}-0`);
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            for(let m=0; m<12; m++){
+                const target = document.getElementById(`month-${year}-${m}`);
+                if(target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+            }
         }
 
-        // START (Carrega configurações padrão vazias)
+        // START (Carrega configurações limpas)
         renderInstructors();
         renderHolidays();
         calculateSchedule();
