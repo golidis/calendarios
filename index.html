@@ -253,17 +253,16 @@
 
     <script>
         // =================================================================
-        // 🔥 COLE SUAS CHAVES DO FIREBASE AQUI DENTRO 🔥
-        // Substitua APENAS o conteúdo entre as chaves {} 
+        // 🔥 CHAVES DO FIREBASE 🔥
         // =================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD4kXXgFJZSnPkMcr0RLpM7x7YCKBlaxuw",
-  authDomain: "calendariossenai.firebaseapp.com",
-  projectId: "calendariossenai",
-  storageBucket: "calendariossenai.firebasestorage.app",
-  messagingSenderId: "416015770151",
-  appId: "1:416015770151:web:59f19d9d6c225b84eea402"
-};
+        const firebaseConfig = {
+          apiKey: "AIzaSyD4kXXgFJZSnPkMcr0RLpM7x7YCKBlaxuw",
+          authDomain: "calendariossenai.firebaseapp.com",
+          projectId: "calendariossenai",
+          storageBucket: "calendariossenai.firebasestorage.app",
+          messagingSenderId: "416015770151",
+          appId: "1:416015770151:web:59f19d9d6c225b84eea402"
+        };
         // =================================================================
 
         // Inicializa o Firebase
@@ -316,7 +315,6 @@ const firebaseConfig = {
             };
 
             try {
-                // Salva no banco de dados
                 await db.collection("cronogramas").doc(saveName).set(data);
                 alert("Cronograma salvo na nuvem com sucesso!");
                 closeModal('modal-save');
@@ -349,7 +347,7 @@ const firebaseConfig = {
                 });
             } catch (error) {
                 console.error("Erro ao buscar:", error);
-                container.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Erro de conexão. As chaves do Firebase foram configuradas corretamente?</div>';
+                container.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Erro de conexão com o Firebase.</div>';
             }
         }
 
@@ -426,7 +424,6 @@ const firebaseConfig = {
             XLSX.writeFile(wb, "cronograma_curso.xlsx");
         }
 
-        // Import local mantido
         function importExcel(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
