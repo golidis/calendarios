@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Curso - Dinâmico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .day-header { font-size: 0.65rem; font-weight: bold; text-align: center; padding: 2px 0; color: #64748b; }
+        .day-cell { 
+            aspect-ratio: 1; 
+            font-size: 0.75rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+        }
+        .day-cell.holiday { color: #ef4444; font-weight: bold; background-color: #fee2e2; border-color: #fca5a5; }
+        .day-cell.weekend { background-color: #f8fafc; color: #94a3b8; }
+        .day-cell.has-class { font-weight: bold; color: #1e293b; border-color: rgba(0,0,0,0.1); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .day-number { z-index: 10; text-shadow: 0 0 3px rgba(255,255,255,0.9), 0 0 1px rgba(255,255,255,1); }
+        
+        .calendar-scroll::-webkit-scrollbar { width: 8px; }
+        .calendar-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .calendar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .calendar-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+
+    <div class="max-w-[1400px] mx-auto p-4 md:p-6 h-screen flex flex-col">
+        
+        <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+            <h1 class="text-2xl font-bold text-slate-800">Planejador de Cronograma Escolar</h1>
+            
+            <div class="flex gap-1 bg-white p-1.5 rounded-lg border border-slate-300 shadow-sm">
+                <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
+                
+                <button onclick="newDocument()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded transition-colors" title="Criar um novo cronograma em branco">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Novo
+                </button>
+                
+                <div class="w-px bg-slate-200 my-1 mx-1"></div>
+                
+                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded transition-colors" title="Abrir um cronograma salvo">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 002 2h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5zM5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14"></path></svg>
+                    Abrir
+                </button>
+                
+                <div class="w-px bg-slate-200 my-1 mx-1"></div>
+                
+                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Salvar cronograma atual">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Salvar
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+            
+            <!-- PAINEL LATERAL (CONTROLES) -->
+            <div class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 calendar-scroll">
+                
+                <!-- Informações do Curso -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        Identificação do Curso
+                    </h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nome do Curso</label>
+                            <input type="text" id="course-name" placeholder="Ex: Técnico em Eletrotécnica" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Carga Horária Total Prevista (h)</label>
+                            <input type="number" id="course-target-hours" placeholder="Ex: 1200" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Capacidade da Escola -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Capacidade Diária da Escola
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Capacidade Manhã</label>
+                            <input type="number" id="max-morning" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" title="Horas disponíveis na manhã">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Capacidade Tarde</label>
+                            <input type="number" id="max-afternoon" value="4" min="0" max="24" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" title="Horas disponíveis na tarde">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instrutores -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Instrutores
+                    </h2>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="instructor-name" placeholder="Nome do Instrutor" class="flex-1 border border-slate-300 rounded-lg p-2 text-sm">
+                        <button onclick="addInstructor()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700">Add</button>
+                    </div>
+                    <div id="instructors-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto calendar-scroll">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- Feriados -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Feriados / Sem Aula
+                    </h2>
+                    <div class="flex flex-col gap-2 mb-3">
+                        <div class="flex gap-2">
+                            <input type="date" id="holiday-date" class="w-1/3 border border-slate-300 rounded-lg p-2 text-sm">
+                            <input type="text" id="holiday-name" placeholder="Nome do Feriado" class="flex-1 border border-slate-300 rounded-lg p-2 text-sm">
+                        </div>
+                        <button onclick="addHoliday()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-700">Adicionar Feriado</button>
+                    </div>
+                    <div id="holidays-list" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto calendar-scroll pr-1">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- Unidades Curriculares (UCs) -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-lg flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            Unidades Curriculares
+                        </h2>
+                        <span class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100" id="total-hours-display">0h Alocadas</span>
+                    </div>
+                    
+                    <div id="uc-form-container" class="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-colors">
+                        <input type="text" id="uc-name" placeholder="Nome da UC" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-semibold">
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data de Início</label>
+                                <input type="date" id="uc-start-date" value="2026-02-02" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Carga Total (h)</label>
+                                <input type="number" id="uc-total-hours" placeholder="Ex: 40" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Diária (h)</label>
+                                <input type="number" id="uc-daily-hours" placeholder="Ex: 4" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Turno</label>
+                                <select id="uc-shift" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white">
+                                    <option value="Manhã">Matutino</option>
+                                    <option value="Tarde">Vespertino</option>
+                                    <option value="Integral">Integral</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor / Professor</label>
+                            <select id="uc-prof-select" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white">
+                                <!-- Preenchido via JS -->
+                            </select>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-1">
+                            <button id="btn-save-uc" onclick="saveUC()" class="flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm">
+                                Adicionar UC na Grade
+                            </button>
+                            <button id="btn-cancel-edit" onclick="cancelEdit()" class="hidden bg-slate-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-500 transition-colors shadow-sm">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="ucs-list" class="space-y-3 mt-4 pr-1">
+                        <!-- UCs Renderizadas Aqui -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PAINEL PRINCIPAL (CALENDÁRIO E RESUMOS) -->
+            <div class="w-full lg:w-2/3 flex flex-col gap-6 overflow-y-auto calendar-scroll pr-2 pb-4">
+                
+                <!-- Calendário -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="font-bold text-lg text-slate-800">Calendário de Execução</h2>
+                        <div class="flex gap-2" id="year-buttons">
+                            <!-- Gerado dinamicamente via JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="p-6 overflow-y-auto h-[600px] calendar-scroll" id="calendar-container">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="calendar-grid">
+                            <!-- Meses gerados via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumo por Professor -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 shrink-0">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="font-bold text-lg text-slate-800">Alocação de UCs por Instrutor</h2>
+                    </div>
+                    <div class="p-6">
+                        <div id="instructor-summary" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ================= ESTADO GLOBAL =================
+        let maxMorning = 4;
+        let maxAfternoon = 4;
+        let instructors = []; // Começa vazio
+        let editingUcId = null; 
+        
+        let holidays = new Map([
+            ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
+            ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
+            ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
+            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+            
+            ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
+            ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
+            ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
+            ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+        ]);
+        
+        let ucs = [];
+        let schedule = {}; 
+
+        // ================= FUNÇÃO: NOVO DOCUMENTO =================
+        function newDocument() {
+            if(confirm("Tem certeza que deseja criar um novo calendário? Todo o progresso não salvo será perdido.")) {
+                document.getElementById('course-name').value = '';
+                document.getElementById('course-target-hours').value = '';
+                document.getElementById('max-morning').value = 4;
+                document.getElementById('max-afternoon').value = 4;
+                maxMorning = 4;
+                maxAfternoon = 4;
+
+                instructors = [];
+                
+                holidays = new Map([
+                    ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
+                    ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
+                    ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
+                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+                    
+                    ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
+                    ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
+                    ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
+                    ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+                ]);
+
+                ucs = [];
+                cancelEdit();
+                renderInstructors();
+                renderHolidays();
+                calculateSchedule();
+            }
+        }
+
+        // ================= EVENTOS GERAIS =================
+        document.getElementById('max-morning').addEventListener('change', (e) => { maxMorning = parseInt(e.target.value) || 0; calculateSchedule(); });
+        document.getElementById('max-afternoon').addEventListener('change', (e) => { maxAfternoon = parseInt(e.target.value) || 0; calculateSchedule(); });
+
+        // ================= UTILIDADES =================
+        function generateColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 70%, 80%)`;
+        }
+
+        function formatDateBR(dateStr) {
+            if(!dateStr) return '--/--/----';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function toDateString(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // ================= EXPORTAR / IMPORTAR EXCEL =================
+        function exportExcel() {
+            const wb = XLSX.utils.book_new();
+
+            const configData = [{
+                NomeCurso: document.getElementById('course-name').value,
+                CargaTotalPrevista: document.getElementById('course-target-hours').value,
+                MaxManha: maxMorning, MaxTarde: maxAfternoon
+            }];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(configData), "Configurações");
+
+            const instData = instructors.map(i => ({ Nome: i }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instData), "Instrutores");
+
+            const holiData = Array.from(holidays.entries()).map(([data, nome]) => ({ Data: data, Nome: nome }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holiData), "Feriados");
+
+            const ucsData = ucs.map(u => ({
+                ID: u.id, Nome: u.name, DataInicio: u.startDate, 
+                CargaTotal: u.totalHours, CargaDiaria: u.dailyHours, 
+                Turno: u.shift, Professor: u.prof, Cor: u.color
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ucsData), "UnidadesCurriculares");
+
+            XLSX.writeFile(wb, "cronograma_curso.xlsx");
+        }
+
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+
+                    if (wb.Sheets["Configurações"]) {
+                        const conf = XLSX.utils.sheet_to_json(wb.Sheets["Configurações"])[0];
+                        if (conf) {
+                            document.getElementById('course-name').value = conf.NomeCurso || '';
+                            document.getElementById('course-target-hours').value = conf.CargaTotalPrevista || '';
+                            document.getElementById('max-morning').value = conf.MaxManha || 4;
+                            document.getElementById('max-afternoon').value = conf.MaxTarde || 4;
+                            maxMorning = parseInt(conf.MaxManha) || 4; maxAfternoon = parseInt(conf.MaxTarde) || 4;
+                        }
+                    }
+
+                    if (wb.Sheets["Instrutores"]) {
+                        instructors = XLSX.utils.sheet_to_json(wb.Sheets["Instrutores"]).map(i => i.Nome).filter(Boolean);
+                    } else {
+                        instructors = [];
+                    }
+
+                    if (wb.Sheets["Feriados"]) {
+                        holidays.clear();
+                        XLSX.utils.sheet_to_json(wb.Sheets["Feriados"]).forEach(h => { if(h.Data) holidays.set(h.Data, h.Nome || 'Feriado'); });
+                    }
+
+                    if (wb.Sheets["UnidadesCurriculares"]) {
+                        ucs = XLSX.utils.sheet_to_json(wb.Sheets["UnidadesCurriculares"]).map(u => ({
+                            id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(),
+                            name: u.Nome, startDate: u.DataInicio, totalHours: parseInt(u.CargaTotal),
+                            dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor,
+                            color: u.Cor || generateColor(), calculatedStart: null, calculatedEnd: null
+                        }));
+                    }
+                    
+                    cancelEdit(); 
+                    renderInstructors();
+                    renderHolidays();
+                    calculateSchedule();
+                    alert("Cronograma importado com sucesso!");
+                } catch (error) {
+                    alert("Erro ao ler o arquivo. Certifique-se de ser um arquivo exportado por este sistema.");
+                }
+                document.getElementById('file-upload').value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ================= INSTRUTORES =================
+        function addInstructor() {
+            const val = document.getElementById('instructor-name').value.trim();
+            if (val && !instructors.includes(val)) {
+                instructors.push(val);
+                document.getElementById('instructor-name').value = '';
+                renderInstructors();
+            }
+        }
+
+        function removeInstructor(name) {
+            instructors = instructors.filter(i => i !== name);
+            renderInstructors();
+            calculateSchedule(); 
+        }
+
+        function renderInstructors() {
+            const container = document.getElementById('instructors-list');
+            container.innerHTML = '';
+            instructors.forEach(i => {
+                const badge = document.createElement('div');
+                badge.className = 'flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-md text-xs font-semibold shadow-sm';
+                badge.innerHTML = `${i} <button onclick="removeInstructor('${i}')" class="ml-1 hover:text-purple-900 focus:outline-none">&times;</button>`;
+                container.appendChild(badge);
+            });
+
+            const select = document.getElementById('uc-prof-select');
+            const currentVal = select.value;
+            select.innerHTML = instructors.map(i => `<option value="${i}">${i}</option>`).join('');
+            if (instructors.includes(currentVal)) select.value = currentVal;
+            
+            renderInstructorSummary();
+        }
+
+        // ================= FERIADOS =================
+        function addHoliday() {
+            const dateVal = document.getElementById('holiday-date').value;
+            let nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado / Recesso';
+            if (dateVal) {
+                holidays.set(dateVal, nameVal);
+                document.getElementById('holiday-date').value = ''; document.getElementById('holiday-name').value = '';
+                renderHolidays(); calculateSchedule();
+            }
+        }
+
+        function removeHoliday(dateStr) {
+            holidays.delete(dateStr); renderHolidays(); calculateSchedule();
+        }
+
+        function renderHolidays() {
+            const container = document.getElementById('holidays-list');
+            container.innerHTML = '';
+            
+            const sortedHolidays = Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+            
+            sortedHolidays.forEach(([date, name]) => {
+                const badge = document.createElement('div');
+                badge.className = 'flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm';
+                badge.innerHTML = `
+                    <span>${formatDateBR(date)} - <span class="font-normal">${name}</span></span>
+                    <button onclick="removeHoliday('${date}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button>
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        // ================= UNIDADES CURRICULARES =================
+        function saveUC() {
+            const name = document.getElementById('uc-name').value.trim();
+            const startDate = document.getElementById('uc-start-date').value;
+            const totalHours = parseInt(document.getElementById('uc-total-hours').value);
+            const dailyHours = parseInt(document.getElementById('uc-daily-hours').value);
+            const shift = document.getElementById('uc-shift').value;
+            const prof = document.getElementById('uc-prof-select').value;
+
+            if (!name || !startDate || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) {
+                alert("Preencha todos os campos da UC corretamente. Verifique se o professor foi selecionado.");
+                return;
+            }
+
+            if (editingUcId) {
+                const ucIndex = ucs.findIndex(u => u.id === editingUcId);
+                if (ucIndex !== -1) {
+                    ucs[ucIndex].name = name;
+                    ucs[ucIndex].startDate = startDate;
+                    ucs[ucIndex].totalHours = totalHours;
+                    ucs[ucIndex].dailyHours = dailyHours;
+                    ucs[ucIndex].shift = shift;
+                    ucs[ucIndex].prof = prof;
+                }
+                cancelEdit(); 
+            } else {
+                ucs.push({
+                    id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof,
+                    color: generateColor(), calculatedStart: null, calculatedEnd: null
+                });
+                document.getElementById('uc-name').value = '';
+                document.getElementById('uc-total-hours').value = '';
+            }
+
+            calculateSchedule();
+        }
+
+        function editUC(id) {
+            const uc = ucs.find(u => u.id === id);
+            if (!uc) return;
+
+            editingUcId = id;
+            
+            document.getElementById('uc-name').value = uc.name;
+            document.getElementById('uc-start-date').value = uc.startDate;
+            document.getElementById('uc-total-hours').value = uc.totalHours;
+            document.getElementById('uc-daily-hours').value = uc.dailyHours;
+            document.getElementById('uc-shift').value = uc.shift;
+            document.getElementById('uc-prof-select').value = uc.prof;
+
+            document.getElementById('uc-form-container').classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+            
+            const btnSave = document.getElementById('btn-save-uc');
+            btnSave.innerText = "Salvar Alterações";
+            btnSave.className = "flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm";
+            
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            document.getElementById('uc-form-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function cancelEdit() {
+            editingUcId = null;
+            document.getElementById('uc-name').value = '';
+            document.getElementById('uc-total-hours').value = '';
+            
+            document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+
+            const btnSave = document.getElementById('btn-save-uc');
+            btnSave.innerText = "Adicionar UC na Grade";
+            btnSave.className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
+            
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        function removeUC(id) {
+            if(confirm("Tem certeza que deseja excluir esta Unidade Curricular?")) {
+                if (editingUcId === id) cancelEdit(); 
+                ucs = ucs.filter(uc => uc.id !== id);
+                calculateSchedule();
+            }
+        }
+
+        // ================= MOTOR DE CÁLCULO =================
+        function calculateSchedule() {
+            schedule = {};
+            let totalHoursCounter = 0;
+            
+            ucs.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+            ucs.forEach(uc => {
+                uc.calculatedStart = null;
+                uc.calculatedEnd = null;
+                totalHoursCounter += uc.totalHours;
+                
+                let hoursToAllocate = uc.totalHours;
+                const [y, m, d] = uc.startDate.split('-');
+                let currentDate = new Date(y, m - 1, d);
+
+                while (hoursToAllocate > 0) {
+                    const dateStr = toDateString(currentDate);
+                    const dayOfWeek = currentDate.getDay(); 
+                    
+                    if (dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)) {
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        continue;
+                    }
+
+                    if (!schedule[dateStr]) schedule[dateStr] = { manha: 0, tarde: 0, ucs: [] };
+
+                    let allocatedHere = 0;
+                    
+                    if (uc.shift === 'Manhã') {
+                        let available = maxMorning - schedule[dateStr].manha;
+                        let canAllocate = Math.min(uc.dailyHours, available, hoursToAllocate);
+                        if (canAllocate > 0) { schedule[dateStr].manha += canAllocate; allocatedHere = canAllocate; }
+                    } 
+                    else if (uc.shift === 'Tarde') {
+                        let available = maxAfternoon - schedule[dateStr].tarde;
+                        let canAllocate = Math.min(uc.dailyHours, available, hoursToAllocate);
+                        if (canAllocate > 0) { schedule[dateStr].tarde += canAllocate; allocatedHere = canAllocate; }
+                    } 
+                    else if (uc.shift === 'Integral') {
+                        let availableManha = maxMorning - schedule[dateStr].manha;
+                        let availableTarde = maxAfternoon - schedule[dateStr].tarde;
+                        let totalAvailable = availableManha + availableTarde;
+                        
+                        let canAllocate = Math.min(uc.dailyHours, totalAvailable, hoursToAllocate);
+                        if (canAllocate > 0) {
+                            let toManha = Math.min(canAllocate, availableManha);
+                            let toTarde = canAllocate - toManha;
+                            schedule[dateStr].manha += toManha; schedule[dateStr].tarde += toTarde;
+                            allocatedHere = canAllocate;
+                        }
+                    }
+
+                    if (allocatedHere > 0) {
+                        schedule[dateStr].ucs.push({
+                            id: uc.id, name: uc.name, hours: allocatedHere, color: uc.color, shift: uc.shift
+                        });
+                        hoursToAllocate -= allocatedHere;
+                        if (!uc.calculatedStart) uc.calculatedStart = dateStr;
+                        uc.calculatedEnd = dateStr;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+            });
+
+            document.getElementById('total-hours-display').innerText = `${totalHoursCounter}h Alocadas`;
+            renderUCs();
+            renderCalendar();
+            renderInstructorSummary();
+        }
+
+        // ================= RENDERIZAÇÕES =================
+        function renderUCs() {
+            const container = document.getElementById('ucs-list');
+            container.innerHTML = '';
+
+            ucs.forEach(uc => {
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-lg border border-slate-200 bg-white relative shadow-sm';
+                const shiftColor = uc.shift === 'Manhã' ? 'text-amber-500' : (uc.shift === 'Tarde' ? 'text-indigo-500' : 'text-emerald-500');
+
+                card.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-2 rounded-l-lg" style="background-color: ${uc.color}"></div>
+                    <div class="pl-3">
+                        <div class="flex justify-between items-start gap-2">
+                            <h3 class="font-bold text-sm text-slate-800 flex-1 break-words leading-tight mt-1">${uc.name}</h3>
+                            <div class="flex gap-2 shrink-0">
+                                <button onclick="editUC('${uc.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors focus:outline-none" title="Editar UC">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button onclick="removeUC('${uc.id}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors focus:outline-none" title="Excluir UC">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Instrutor: <span class="font-bold text-slate-700">${uc.prof}</span></p>
+                        <p class="text-[11px] font-semibold text-slate-500 mt-0.5">
+                            ${uc.totalHours}h totais • ${uc.dailyHours}h/dia • <span class="${shiftColor}">${uc.shift}</span>
+                        </p>
+                        ${uc.calculatedStart ? `
+                            <div class="mt-2 bg-slate-50 border border-slate-100 p-2 rounded text-xs flex justify-between shadow-inner">
+                                <div><span class="text-slate-400">Início:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedStart)}</b></div>
+                                <div><span class="text-slate-400">Fim:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedEnd)}</b></div>
+                            </div>
+                        ` : `
+                            <div class="mt-2 bg-red-50 text-red-600 border border-red-100 p-2 rounded text-xs font-semibold text-center">
+                                Não há espaço na agenda para esta UC.
+                            </div>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-grid');
+            container.innerHTML = '';
+            
+            // Calcula os anos dinamicamente baseados nas UCs
+            let minYear = 2026;
+            let maxYear = 2026;
+            
+            ucs.forEach(uc => {
+                if (uc.startDate) {
+                    const y = parseInt(uc.startDate.split('-')[0]);
+                    if (y < minYear) minYear = y;
+                    if (y > maxYear) maxYear = y;
+                }
+                if (uc.calculatedEnd) {
+                    const y = parseInt(uc.calculatedEnd.split('-')[0]);
+                    if (y < minYear) minYear = y;
+                    if (y > maxYear) maxYear = y;
+                }
+            });
+
+            const years = [];
+            for (let y = minYear; y <= maxYear; y++) years.push(y);
+
+            // Atualiza botões de navegação dos anos dinamicamente
+            const btnContainer = document.getElementById('year-buttons');
+            btnContainer.innerHTML = '';
+            years.forEach(y => {
+                btnContainer.innerHTML += `<button onclick="scrollToYear(${y})" class="px-3 py-1.5 bg-white border border-slate-300 rounded shadow-sm text-sm font-semibold hover:bg-slate-100">${y}</button>`;
+            });
+
+            const monthsPT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const daysPT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+            years.forEach(year => {
+                for (let month = 0; month < 12; month++) {
+                    const monthDiv = document.createElement('div');
+                    monthDiv.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm';
+                    monthDiv.id = `month-${year}-${month}`;
+
+                    const header = document.createElement('h3');
+                    header.className = 'font-bold text-slate-800 text-center mb-3';
+                    header.innerText = `${monthsPT[month]} ${year}`;
+                    monthDiv.appendChild(header);
+
+                    const grid = document.createElement('div');
+                    grid.className = 'month-grid';
+
+                    daysPT.forEach(d => {
+                        const dHeader = document.createElement('div');
+                        dHeader.className = 'day-header';
+                        dHeader.innerText = d;
+                        grid.appendChild(dHeader);
+                    });
+
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                    for (let i = 0; i < firstDay; i++) {
+                        grid.appendChild(document.createElement('div'));
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const cell = document.createElement('div');
+                        const dateObj = new Date(year, month, day);
+                        const dateStr = toDateString(dateObj);
+                        const dayOfWeek = dateObj.getDay();
+
+                        cell.className = 'day-cell';
+                        cell.innerHTML = `<span class="day-number">${day}</span>`;
+
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            cell.classList.add('weekend');
+                        }
+
+                        if (holidays.has(dateStr)) {
+                            cell.classList.add('holiday');
+                            cell.title = `Feriado: ${holidays.get(dateStr)}`;
+                        }
+
+                        if (schedule[dateStr] && schedule[dateStr].ucs.length > 0) {
+                            cell.classList.add('has-class');
+                            
+                            const allocs = schedule[dateStr].ucs;
+                            if (allocs.length === 1) {
+                                cell.style.backgroundColor = allocs[0].color;
+                                cell.title = `${allocs[0].name} (${allocs[0].hours}h) - ${allocs[0].shift}`;
+                            } else {
+                                allocs.sort((a, b) => {
+                                    const order = { 'Manhã': 1, 'Integral': 2, 'Tarde': 3 };
+                                    return order[a.shift] - order[b.shift];
+                                });
+
+                                let stops = [];
+                                let currentPct = 0;
+                                let totalDayHours = allocs.reduce((sum, u) => sum + u.hours, 0);
+                                
+                                allocs.forEach(al => {
+                                    const pct = (al.hours / totalDayHours) * 100;
+                                    stops.push(`${al.color} ${currentPct}%`);
+                                    currentPct += pct;
+                                    stops.push(`${al.color} ${currentPct}%`);
+                                });
+                                
+                                cell.style.background = `linear-gradient(135deg, ${stops.join(', ')})`;
+                                cell.title = allocs.map(al => `${al.name} (${al.hours}h - ${al.shift})`).join('  |  ');
+                            }
+                        }
+
+                        grid.appendChild(cell);
+                    }
+
+                    monthDiv.appendChild(grid);
+                    container.appendChild(monthDiv);
+                }
+            });
+        }
+
+        function renderInstructorSummary() {
+            const container = document.getElementById('instructor-summary');
+            container.innerHTML = '';
+            
+            if (instructors.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhum instrutor cadastrado.</p>';
+                return;
+            }
+
+            instructors.forEach(prof => {
+                const profUcs = ucs.filter(u => u.prof === prof);
+                const card = document.createElement('div');
+                card.className = 'border border-slate-200 rounded-lg overflow-hidden';
+                
+                let listHtml = '';
+                if (profUcs.length === 0) {
+                    listHtml = '<div class="p-4 text-sm text-slate-400 italic bg-slate-50">Sem UCs atribuídas.</div>';
+                } else {
+                    listHtml = '<ul class="divide-y divide-slate-100">';
+                    profUcs.forEach(uc => {
+                        const datesInfo = uc.calculatedStart 
+                            ? `${formatDateBR(uc.calculatedStart)} a ${formatDateBR(uc.calculatedEnd)}`
+                            : `<span class="text-red-500">Erro de Agendamento</span>`;
+                            
+                        listHtml += `
+                            <li class="p-3 hover:bg-slate-50 transition-colors">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                                        <div class="w-2.5 h-2.5 rounded-full" style="background-color: ${uc.color}"></div>
+                                        ${uc.name}
+                                    </span>
+                                    <span class="text-xs font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-500">${uc.totalHours}h</span>
+                                </div>
+                                <div class="pl-4 text-xs text-slate-500 flex justify-between">
+                                    <span>${datesInfo}</span>
+                                    <span class="uppercase tracking-wider font-semibold">${uc.shift}</span>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    listHtml += '</ul>';
+                }
+
+                card.innerHTML = `
+                    <div class="bg-purple-50 text-purple-800 font-bold px-4 py-2 border-b border-purple-100 flex justify-between items-center">
+                        ${prof}
+                        <span class="bg-purple-200 text-purple-800 text-[10px] px-2 py-0.5 rounded-full">${profUcs.length} UCs</span>
+                    </div>
+                    ${listHtml}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function scrollToYear(year) {
+            const target = document.getElementById(`month-${year}-0`);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // START (Carrega configurações padrão vazias)
+        renderInstructors();
+        renderHolidays();
+        calculateSchedule();
+
+    </script>
+</body>
+</html>
