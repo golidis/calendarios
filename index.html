@@ -258,7 +258,7 @@
 
     <script>
         // =================================================================
-        // 🔥 CHAVES DO FIREBASE 🔥 (Já configuradas com os seus dados)
+        // 🔥 CHAVES DO FIREBASE 🔥
         // =================================================================
         const firebaseConfig = {
           apiKey: "AIzaSyD4kXXgFJZSnPkMcr0RLpM7x7YCKBlaxuw",
@@ -314,7 +314,8 @@
                 maxMorning: maxMorning,
                 maxAfternoon: maxAfternoon,
                 instructors: instructors,
-                holidays: Array.from(holidays.entries()), 
+                // CORREÇÃO: Transformando o Map em lista de objetos em vez de listas aninhadas
+                holidays: Array.from(holidays.entries()).map(([date, name]) => ({ date: date, name: name })), 
                 ucs: ucs,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -325,7 +326,7 @@
                 closeModal('modal-save');
             } catch (error) {
                 console.error("Erro ao salvar:", error);
-                alert("Erro de permissão! Verifique se você ativou o Firebase Firestore no 'Modo de Teste'.");
+                alert("Erro ao salvar os dados no Firebase.");
             }
         }
 
@@ -373,7 +374,12 @@
                     
                     holidays.clear();
                     if(data.holidays) {
-                        data.holidays.forEach(([date, name]) => holidays.set(date, name));
+                        // CORREÇÃO: Lendo a nova lista de objetos de Feriados
+                        data.holidays.forEach(h => {
+                            if (h.date && h.name) {
+                                holidays.set(h.date, h.name);
+                            }
+                        });
                     }
 
                     ucs = data.ucs || [];
