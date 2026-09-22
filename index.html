@@ -61,7 +61,6 @@
 
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
-                <!-- Botões locais mantidos como fallback -->
                 <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
                 <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar XLSX">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -121,20 +120,29 @@
                     <div id="instructors-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto calendar-scroll"></div>
                 </div>
 
-                <!-- Feriados -->
+                <!-- Férias / Feriados (NOVO) -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
                         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Feriados / Sem Aula
+                        Férias e Feriados
                     </h2>
-                    <div class="flex flex-col gap-2 mb-3">
-                        <div class="flex gap-2">
-                            <input type="date" id="holiday-date" class="w-1/3 border border-slate-300 rounded-lg p-2 text-sm">
-                            <input type="text" id="holiday-name" placeholder="Nome do Feriado" class="flex-1 border border-slate-300 rounded-lg p-2 text-sm">
+                    <div class="flex flex-col gap-2 mb-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <input type="text" id="holiday-name" placeholder="Nome (Ex: Férias de Julho, Feriado)" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-semibold">
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Inicial</label>
+                                <input type="date" id="holiday-start" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 mt-4">até</span>
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Final (Opcional)</label>
+                                <input type="date" id="holiday-end" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                            </div>
                         </div>
-                        <button onclick="addHoliday()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-700">Adicionar Feriado</button>
+                        <button onclick="addHoliday()" class="w-full mt-1 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-700">Adicionar Período</button>
                     </div>
-                    <div id="holidays-list" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto calendar-scroll pr-1"></div>
+                    <div id="holidays-list" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto calendar-scroll pr-1"></div>
                 </div>
 
                 <!-- Unidades Curriculares (UCs) -->
@@ -175,8 +183,8 @@
                                 </select>
                             </div>
                         </div>
-
-                        <!-- Novo Seletor de Dias da Semana -->
+                        
+                        <!-- Dias da Semana -->
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dias da Semana</label>
                             <div class="flex gap-1" id="uc-days-container">
@@ -309,9 +317,7 @@
             }
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
         async function saveToCloud() {
             const saveName = document.getElementById('cloud-save-name').value.trim();
@@ -344,19 +350,12 @@
             
             try {
                 const snapshot = await db.collection("cronogramas").get();
-                if(snapshot.empty) {
-                    container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo ainda.</div>';
-                    return;
-                }
-
+                if(snapshot.empty) { container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo ainda.</div>'; return; }
                 container.innerHTML = '';
                 snapshot.forEach(doc => {
                     const item = document.createElement('div');
                     item.className = 'flex justify-between items-center p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg cursor-pointer transition-colors';
-                    item.innerHTML = `
-                        <span class="font-bold text-slate-700">${doc.id}</span>
-                        <button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button>
-                    `;
+                    item.innerHTML = `<span class="font-bold text-slate-700">${doc.id}</span><button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button>`;
                     container.appendChild(item);
                 });
             } catch (error) {
@@ -370,30 +369,19 @@
                 const doc = await db.collection("cronogramas").doc(docId).get();
                 if (doc.exists) {
                     const data = doc.data();
-                    
                     document.getElementById('course-name').value = data.courseName || '';
                     document.getElementById('course-target-hours').value = data.targetHours || '';
                     document.getElementById('max-morning').value = data.maxMorning || 4;
                     document.getElementById('max-afternoon').value = data.maxAfternoon || 4;
-                    maxMorning = data.maxMorning || 4;
-                    maxAfternoon = data.maxAfternoon || 4;
+                    maxMorning = data.maxMorning || 4; maxAfternoon = data.maxAfternoon || 4;
                     
                     instructors = data.instructors || [];
-                    
                     holidays.clear();
-                    if(data.holidays) {
-                        data.holidays.forEach(([date, name]) => holidays.set(date, name));
-                    }
-
-                    // Carrega UCs (Garantindo que antigas funcionem mesmo sem array de dias)
+                    if(data.holidays) { data.holidays.forEach(([date, name]) => holidays.set(date, name)); }
+                    
                     ucs = (data.ucs || []).map(u => ({...u, daysOfWeek: u.daysOfWeek || [1,2,3,4,5]}));
                     
-                    cancelEdit();
-                    renderInstructors();
-                    renderHolidays();
-                    calculateSchedule();
-                    
-                    closeModal('modal-load');
+                    cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); closeModal('modal-load');
                     alert(`Cronograma "${docId}" carregado com sucesso!`);
                 }
             } catch (error) {
@@ -405,10 +393,8 @@
         // ================= FUNÇÃO: NOVO DOCUMENTO =================
         function newDocument() {
             if(confirm("Criar novo cronograma? O progresso não salvo será perdido.")) {
-                document.getElementById('course-name').value = '';
-                document.getElementById('course-target-hours').value = '';
-                document.getElementById('max-morning').value = 4;
-                document.getElementById('max-afternoon').value = 4;
+                document.getElementById('course-name').value = ''; document.getElementById('course-target-hours').value = '';
+                document.getElementById('max-morning').value = 4; document.getElementById('max-afternoon').value = 4;
                 maxMorning = 4; maxAfternoon = 4;
                 instructors = [];
                 holidays = new Map([
@@ -458,8 +444,7 @@
                     if (wb.Sheets["UnidadesCurriculares"]) {
                         ucs = XLSX.utils.sheet_to_json(wb.Sheets["UnidadesCurriculares"]).map(u => ({
                             id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), name: u.Nome, startDate: u.DataInicio, totalHours: parseInt(u.CargaTotal), dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor, color: u.Cor || generateColor(), 
-                            daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5],
-                            calculatedStart: null, calculatedEnd: null
+                            daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5], calculatedStart: null, calculatedEnd: null
                         }));
                     }
                     cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); alert("Cronograma local importado com sucesso!");
@@ -478,15 +463,76 @@
             if (instructors.includes(currentVal)) select.value = currentVal; renderInstructorSummary();
         }
 
-        function addHoliday() { const dateVal = document.getElementById('holiday-date').value; let nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado / Recesso'; if (dateVal) { holidays.set(dateVal, nameVal); document.getElementById('holiday-date').value = ''; document.getElementById('holiday-name').value = ''; renderHolidays(); calculateSchedule(); } }
-        function removeHoliday(dateStr) { holidays.delete(dateStr); renderHolidays(); calculateSchedule(); }
+        // ================= LÓGICA DE FÉRIAS / FERIADOS =================
+        function addHoliday() { 
+            const startVal = document.getElementById('holiday-start').value; 
+            const endVal = document.getElementById('holiday-end').value; 
+            let nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado / Férias'; 
+            
+            if (!startVal) { alert("Informe a data inicial."); return; }
+
+            const startD = new Date(startVal + 'T00:00:00');
+            const endD = endVal ? new Date(endVal + 'T00:00:00') : new Date(startVal + 'T00:00:00');
+
+            if (endD < startD) { alert("A data final não pode ser antes da data inicial."); return; }
+
+            let curr = new Date(startD);
+            while (curr <= endD) {
+                holidays.set(toDateString(curr), nameVal);
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            document.getElementById('holiday-start').value = ''; 
+            document.getElementById('holiday-end').value = ''; 
+            document.getElementById('holiday-name').value = ''; 
+            renderHolidays(); calculateSchedule(); 
+        }
+
+        function removeHolidayRange(startStr, endStr) {
+            const startD = new Date(startStr + 'T00:00:00');
+            const endD = new Date(endStr + 'T00:00:00');
+            let curr = new Date(startD);
+            while (curr <= endD) {
+                holidays.delete(toDateString(curr));
+                curr.setDate(curr.getDate() + 1);
+            }
+            renderHolidays(); calculateSchedule();
+        }
+
         function renderHolidays() {
             const container = document.getElementById('holidays-list'); container.innerHTML = '';
-            Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0])).forEach(([date, name]) => {
-                container.innerHTML += `<div class="flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm"><span>${formatDateBR(date)} - <span class="font-normal">${name}</span></span><button onclick="removeHoliday('${date}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button></div>`;
+            
+            const sorted = Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+            if (sorted.length === 0) return;
+
+            // Agrupa feriados contínuos com o mesmo nome para não poluir a tela
+            const groups = [];
+            let current = { start: sorted[0][0], end: sorted[0][0], name: sorted[0][1] };
+
+            for(let i = 1; i < sorted.length; i++) {
+                const [dateStr, name] = sorted[i];
+                const prevDate = new Date(current.end + 'T00:00:00');
+                const currDate = new Date(dateStr + 'T00:00:00');
+                const diffDays = Math.ceil(Math.abs(currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 1 && name === current.name) {
+                    current.end = dateStr;
+                } else {
+                    groups.push(current);
+                    current = { start: dateStr, end: dateStr, name: name };
+                }
+            }
+            groups.push(current);
+
+            groups.forEach(g => {
+                let displayStr = formatDateBR(g.start);
+                if (g.start !== g.end) displayStr += ` até ${formatDateBR(g.end)}`;
+                
+                container.innerHTML += `<div class="flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm"><span>${displayStr} - <span class="font-normal">${g.name}</span></span><button onclick="removeHolidayRange('${g.start}', '${g.end}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button></div>`;
             });
         }
 
+        // ================= LÓGICA DE UCs =================
         function saveUC() {
             const name = document.getElementById('uc-name').value.trim(); 
             const startDate = document.getElementById('uc-start-date').value; 
@@ -495,7 +541,6 @@
             const shift = document.getElementById('uc-shift').value; 
             const prof = document.getElementById('uc-prof-select').value;
             
-            // Pega os dias da semana checados
             const checkboxes = document.querySelectorAll('#uc-days-container input[type="checkbox"]:checked');
             const daysOfWeek = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
@@ -520,9 +565,7 @@
             document.getElementById('uc-shift').value = uc.shift; document.getElementById('uc-prof-select').value = uc.prof;
             
             const days = uc.daysOfWeek || [1,2,3,4,5];
-            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => {
-                cb.checked = days.includes(parseInt(cb.value));
-            });
+            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => { cb.checked = days.includes(parseInt(cb.value)); });
 
             document.getElementById('uc-form-container').classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Salvar Alterações"; document.getElementById('btn-save-uc').className = "flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm";
@@ -531,9 +574,7 @@
 
         function cancelEdit() {
             editingUcId = null; document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
-            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => {
-                cb.checked = [1, 2, 3, 4, 5].includes(parseInt(cb.value)); // Default Seg a Sex
-            });
+            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => { cb.checked = [1, 2, 3, 4, 5].includes(parseInt(cb.value)); });
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Adicionar UC"; document.getElementById('btn-save-uc').className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
             document.getElementById('btn-cancel-edit').classList.add('hidden');
@@ -550,8 +591,6 @@
 
                 while (hoursToAllocate > 0) {
                     const dateStr = toDateString(currentDate); const dayOfWeek = currentDate.getDay(); 
-                    
-                    // Se o dia não estiver marcado para essa UC ou for feriado, pula pro próximo dia
                     if (!daysOfWk.includes(dayOfWeek) || holidays.has(dateStr)) { currentDate.setDate(currentDate.getDate() + 1); continue; }
                     
                     if (!schedule[dateStr]) schedule[dateStr] = { manha: 0, tarde: 0, ucs: [] };
