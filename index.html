@@ -27,6 +27,10 @@
         .calendar-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         .calendar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .calendar-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Ajuste para o input de cor ficar mais elegante */
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 relative">
@@ -146,7 +150,6 @@
                             </div>
                         </div>
                         
-                        <!-- NOVO SISTEMA DE FASES -->
                         <div id="phases-wrapper" class="bg-white border border-slate-200 rounded-lg p-2 space-y-2 shadow-inner">
                             <div class="flex justify-between items-center border-b border-slate-100 pb-1">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase">Dias de Aula e Início</label>
@@ -157,9 +160,16 @@
                             </div>
                         </div>
                         
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor</label>
-                            <select id="uc-prof-select" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white"></select>
+                        <!-- NOVO: Instrutor e Cor lado a lado -->
+                        <div class="grid grid-cols-4 gap-3">
+                            <div class="col-span-3">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor</label>
+                                <select id="uc-prof-select" class="w-full border border-slate-300 rounded-lg p-2 text-sm text-slate-700 bg-white"></select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cor</label>
+                                <input type="color" id="uc-color" class="w-full h-[38px] border border-slate-300 rounded-lg cursor-pointer p-0.5" title="Escolha a cor desta UC">
+                            </div>
                         </div>
                         
                         <div class="flex gap-2 mt-1">
@@ -242,20 +252,40 @@
         let editingUcId = null; 
         
         let holidays = new Map([
+            // 2026
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
             ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
             ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']
+            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+            // 2027 (INCLUÍDOS)
+            ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
+            ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
+            ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
+            ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
         ]);
         
         let ucs = [];
         let schedule = {}; 
 
+        // ================= FUNÇÕES DE COR =================
+        function generateColor() {
+            // Gera cores pastéis em formato Hexadecimal para funcionar no <input type="color">
+            const r = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
+            const g = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
+            const b = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+        
+        // Atribui uma cor inicial assim que carrega
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('uc-color').value = generateColor();
+        });
+
         // ================= FASES DA UC (UI) =================
         let phaseCount = 0;
         function addPhaseUI(startDate = '', days = [1,2,3,4,5], isFirst = false) {
             const container = document.getElementById('phases-list');
-            if (container.children.length === 0) isFirst = true; // Força segurança
+            if (container.children.length === 0) isFirst = true;
 
             const div = document.createElement('div');
             div.className = `phase-row p-2 rounded border relative ${isFirst ? 'bg-slate-50 border-slate-200' : 'bg-blue-50/30 border-blue-200 mt-2'}`;
@@ -337,7 +367,6 @@
                     instructors = data.instructors || []; holidays.clear();
                     if(data.holidays) { data.holidays.forEach(([date, name]) => holidays.set(date, name)); }
                     
-                    // Compatibilidade com versões antigas (sem fases)
                     ucs = (data.ucs || []).map(u => {
                         let phases = u.phases;
                         if (!phases) phases = [{ startDate: u.startDate, daysOfWeek: u.daysOfWeek || [1,2,3,4,5] }];
@@ -358,7 +387,12 @@
                     ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
                     ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
                     ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']
+                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+                    
+                    ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
+                    ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
+                    ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
+                    ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
                 ]);
                 cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule();
             }
@@ -367,7 +401,6 @@
         document.getElementById('max-morning').addEventListener('change', (e) => { maxMorning = parseInt(e.target.value) || 0; calculateSchedule(); });
         document.getElementById('max-afternoon').addEventListener('change', (e) => { maxAfternoon = parseInt(e.target.value) || 0; calculateSchedule(); });
 
-        function generateColor() { return `hsl(${Math.floor(Math.random() * 360)}, 70%, 80%)`; }
         function formatDateBR(dateStr) { if(!dateStr) return '--/--/----'; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; }
         function toDateString(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
 
@@ -411,7 +444,11 @@
                             } else {
                                 phases = [{ startDate: u.DataInicio, daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5] }];
                             }
-                            return { id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), name: u.Nome, startDate: phases[0].startDate, totalHours: parseInt(u.CargaTotal), dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor, color: u.Cor || generateColor(), phases: phases, calculatedStart: null, calculatedEnd: null };
+                            // Fallback de cor para importar arquivos antigos
+                            let importedColor = u.Cor;
+                            if (!importedColor || importedColor.includes('hsl')) importedColor = generateColor();
+
+                            return { id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), name: u.Nome, startDate: phases[0].startDate, totalHours: parseInt(u.CargaTotal), dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor, color: importedColor, phases: phases, calculatedStart: null, calculatedEnd: null };
                         });
                     }
                     cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); alert("Cronograma importado!");
@@ -473,21 +510,23 @@
             const dailyHours = parseInt(document.getElementById('uc-daily-hours').value); 
             const shift = document.getElementById('uc-shift').value; 
             const prof = document.getElementById('uc-prof-select').value;
+            const color = document.getElementById('uc-color').value;
             
             const phases = getPhasesFromUI();
             if (!phases) { alert("Preencha todas as datas e selecione os dias da semana em todas as fases da matéria."); return; }
             if (!name || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) { alert("Preencha os campos principais e o instrutor."); return; }
 
-            const startDate = phases[0].startDate; // A primeira fase dita o início
+            const startDate = phases[0].startDate;
 
             if (editingUcId) {
                 const ucIndex = ucs.findIndex(u => u.id === editingUcId); 
-                if (ucIndex !== -1) { Object.assign(ucs[ucIndex], {name, startDate, totalHours, dailyHours, shift, prof, phases}); } 
+                if (ucIndex !== -1) { Object.assign(ucs[ucIndex], {name, startDate, totalHours, dailyHours, shift, prof, color, phases}); } 
                 cancelEdit(); 
             } else {
-                ucs.push({ id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof, phases, color: generateColor(), calculatedStart: null, calculatedEnd: null });
+                ucs.push({ id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof, color, phases, calculatedStart: null, calculatedEnd: null });
                 document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
-                resetPhasesUI(); // Limpa as fases pro próximo
+                document.getElementById('uc-color').value = generateColor(); // Reseta para uma nova cor sugerida
+                resetPhasesUI(); 
             }
             calculateSchedule();
         }
@@ -500,7 +539,13 @@
             document.getElementById('uc-shift').value = uc.shift; 
             document.getElementById('uc-prof-select').value = uc.prof;
             
-            // Renderiza as fases na UI
+            const colorInput = document.getElementById('uc-color');
+            if (uc.color && uc.color.startsWith('#')) {
+                colorInput.value = uc.color;
+            } else {
+                colorInput.value = generateColor();
+            }
+            
             document.getElementById('phases-list').innerHTML = '';
             if (uc.phases && uc.phases.length > 0) {
                 uc.phases.forEach((p, idx) => addPhaseUI(p.startDate, p.daysOfWeek, idx === 0));
@@ -514,7 +559,10 @@
         }
 
         function cancelEdit() {
-            editingUcId = null; document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
+            editingUcId = null; 
+            document.getElementById('uc-name').value = ''; 
+            document.getElementById('uc-total-hours').value = '';
+            document.getElementById('uc-color').value = generateColor(); // cor nova
             resetPhasesUI();
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Adicionar UC"; document.getElementById('btn-save-uc').className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
@@ -530,7 +578,6 @@
                 uc.calculatedStart = null; uc.calculatedEnd = null; totalHoursCounter += uc.totalHours;
                 let hoursToAllocate = uc.totalHours; 
                 
-                // Organiza as fases cronologicamente por garantia
                 const sortedPhases = [...(uc.phases || [])].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
                 if(sortedPhases.length === 0) { sortedPhases.push({ startDate: uc.startDate, daysOfWeek: [1,2,3,4,5] }); }
 
@@ -541,7 +588,6 @@
                     const dateStr = toDateString(currentDate); 
                     const dayOfWeek = currentDate.getDay(); 
                     
-                    // Descobre qual é a fase ativa no dia de hoje
                     let activePhase = sortedPhases[0];
                     for(let p of sortedPhases) {
                         if (currentDate >= new Date(p.startDate + 'T00:00:00')) activePhase = p;
