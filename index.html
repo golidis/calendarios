@@ -51,20 +51,26 @@
                 
                 <button onclick="openModal('modal-load')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Abrir do Banco de Dados">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 002-2v-4M17 9l-5 5-5-5M12 12.5V3"></path></svg>
-                    Abrir da Nuvem
+                    Nuvem
                 </button>
                 
                 <button onclick="openModal('modal-save')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Salvar no Banco de Dados">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Salvar na Nuvem
+                    Salvar
                 </button>
 
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 
+                <!-- Botões locais (Importar e Exportar) restaurados -->
                 <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
-                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar XLSX">
+                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Importar XLSX local">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Importar
+                </button>
+                
+                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar XLSX local">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    XLSX
+                    Exportar
                 </button>
             </div>
         </header>
@@ -120,7 +126,7 @@
                     <div id="instructors-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto calendar-scroll"></div>
                 </div>
 
-                <!-- Férias / Feriados (NOVO) -->
+                <!-- Férias / Feriados -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
                         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -317,7 +323,9 @@
             }
         }
 
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
 
         async function saveToCloud() {
             const saveName = document.getElementById('cloud-save-name').value.trim();
@@ -350,12 +358,19 @@
             
             try {
                 const snapshot = await db.collection("cronogramas").get();
-                if(snapshot.empty) { container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo ainda.</div>'; return; }
+                if(snapshot.empty) {
+                    container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo ainda.</div>';
+                    return;
+                }
+
                 container.innerHTML = '';
                 snapshot.forEach(doc => {
                     const item = document.createElement('div');
                     item.className = 'flex justify-between items-center p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg cursor-pointer transition-colors';
-                    item.innerHTML = `<span class="font-bold text-slate-700">${doc.id}</span><button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button>`;
+                    item.innerHTML = `
+                        <span class="font-bold text-slate-700">${doc.id}</span>
+                        <button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button>
+                    `;
                     container.appendChild(item);
                 });
             } catch (error) {
@@ -369,19 +384,29 @@
                 const doc = await db.collection("cronogramas").doc(docId).get();
                 if (doc.exists) {
                     const data = doc.data();
+                    
                     document.getElementById('course-name').value = data.courseName || '';
                     document.getElementById('course-target-hours').value = data.targetHours || '';
                     document.getElementById('max-morning').value = data.maxMorning || 4;
                     document.getElementById('max-afternoon').value = data.maxAfternoon || 4;
-                    maxMorning = data.maxMorning || 4; maxAfternoon = data.maxAfternoon || 4;
+                    maxMorning = data.maxMorning || 4;
+                    maxAfternoon = data.maxAfternoon || 4;
                     
                     instructors = data.instructors || [];
-                    holidays.clear();
-                    if(data.holidays) { data.holidays.forEach(([date, name]) => holidays.set(date, name)); }
                     
+                    holidays.clear();
+                    if(data.holidays) {
+                        data.holidays.forEach(([date, name]) => holidays.set(date, name));
+                    }
+
                     ucs = (data.ucs || []).map(u => ({...u, daysOfWeek: u.daysOfWeek || [1,2,3,4,5]}));
                     
-                    cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); closeModal('modal-load');
+                    cancelEdit();
+                    renderInstructors();
+                    renderHolidays();
+                    calculateSchedule();
+                    
+                    closeModal('modal-load');
                     alert(`Cronograma "${docId}" carregado com sucesso!`);
                 }
             } catch (error) {
@@ -393,8 +418,10 @@
         // ================= FUNÇÃO: NOVO DOCUMENTO =================
         function newDocument() {
             if(confirm("Criar novo cronograma? O progresso não salvo será perdido.")) {
-                document.getElementById('course-name').value = ''; document.getElementById('course-target-hours').value = '';
-                document.getElementById('max-morning').value = 4; document.getElementById('max-afternoon').value = 4;
+                document.getElementById('course-name').value = '';
+                document.getElementById('course-target-hours').value = '';
+                document.getElementById('max-morning').value = 4;
+                document.getElementById('max-afternoon').value = 4;
                 maxMorning = 4; maxAfternoon = 4;
                 instructors = [];
                 holidays = new Map([
@@ -444,7 +471,8 @@
                     if (wb.Sheets["UnidadesCurriculares"]) {
                         ucs = XLSX.utils.sheet_to_json(wb.Sheets["UnidadesCurriculares"]).map(u => ({
                             id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), name: u.Nome, startDate: u.DataInicio, totalHours: parseInt(u.CargaTotal), dailyHours: parseInt(u.CargaDiaria), shift: u.Turno, prof: u.Professor, color: u.Cor || generateColor(), 
-                            daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5], calculatedStart: null, calculatedEnd: null
+                            daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5],
+                            calculatedStart: null, calculatedEnd: null
                         }));
                     }
                     cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); alert("Cronograma local importado com sucesso!");
@@ -505,7 +533,7 @@
             const sorted = Array.from(holidays.entries()).sort((a, b) => a[0].localeCompare(b[0]));
             if (sorted.length === 0) return;
 
-            // Agrupa feriados contínuos com o mesmo nome para não poluir a tela
+            // Agrupa feriados contínuos
             const groups = [];
             let current = { start: sorted[0][0], end: sorted[0][0], name: sorted[0][1] };
 
@@ -565,7 +593,9 @@
             document.getElementById('uc-shift').value = uc.shift; document.getElementById('uc-prof-select').value = uc.prof;
             
             const days = uc.daysOfWeek || [1,2,3,4,5];
-            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => { cb.checked = days.includes(parseInt(cb.value)); });
+            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => {
+                cb.checked = days.includes(parseInt(cb.value));
+            });
 
             document.getElementById('uc-form-container').classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Salvar Alterações"; document.getElementById('btn-save-uc').className = "flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm";
@@ -574,7 +604,9 @@
 
         function cancelEdit() {
             editingUcId = null; document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
-            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => { cb.checked = [1, 2, 3, 4, 5].includes(parseInt(cb.value)); });
+            document.querySelectorAll('#uc-days-container input[type="checkbox"]').forEach(cb => {
+                cb.checked = [1, 2, 3, 4, 5].includes(parseInt(cb.value)); // Default Seg a Sex
+            });
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Adicionar UC"; document.getElementById('btn-save-uc').className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
             document.getElementById('btn-cancel-edit').classList.add('hidden');
@@ -591,6 +623,7 @@
 
                 while (hoursToAllocate > 0) {
                     const dateStr = toDateString(currentDate); const dayOfWeek = currentDate.getDay(); 
+                    
                     if (!daysOfWk.includes(dayOfWeek) || holidays.has(dateStr)) { currentDate.setDate(currentDate.getDate() + 1); continue; }
                     
                     if (!schedule[dateStr]) schedule[dateStr] = { manha: 0, tarde: 0, ucs: [] };
