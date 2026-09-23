@@ -160,7 +160,7 @@
                             </div>
                         </div>
                         
-                        <!-- NOVO: Instrutor e Cor lado a lado -->
+                        <!-- Instrutor e Cor lado a lado -->
                         <div class="grid grid-cols-4 gap-3">
                             <div class="col-span-3">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor</label>
@@ -252,16 +252,33 @@
         let editingUcId = null; 
         
         let holidays = new Map([
+            // 2025
+            ['2025-01-01', 'Ano Novo'], ['2025-03-03', 'Carnaval'], ['2025-03-04', 'Carnaval'], 
+            ['2025-04-18', 'Paixão de Cristo'], ['2025-04-21', 'Tiradentes'], ['2025-05-01', 'Dia do Trabalho'], 
+            ['2025-06-19', 'Corpus Christi'], ['2025-08-05', 'Aniversário de Rio Verde'], ['2025-09-07', 'Independência do Brasil'], 
+            ['2025-10-12', 'Nossa Sra. Aparecida'], ['2025-11-02', 'Finados'], ['2025-11-15', 'Proclamação da República'], 
+            ['2025-11-20', 'Consciência Negra'], ['2025-12-25', 'Natal'],
+            
             // 2026
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
             ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
-            ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-            ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
-            // 2027 (INCLUÍDOS)
+            ['2026-06-04', 'Corpus Christi'], ['2026-08-05', 'Aniversário de Rio Verde'], ['2026-09-07', 'Independência do Brasil'], 
+            ['2026-10-12', 'Nossa Sra. Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], 
+            ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+            
+            // 2027
             ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
             ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
-            ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
-            ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+            ['2027-05-27', 'Corpus Christi'], ['2027-08-05', 'Aniversário de Rio Verde'], ['2027-09-07', 'Independência do Brasil'], 
+            ['2027-10-12', 'Nossa Sra. Aparecida'], ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], 
+            ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal'],
+            
+            // 2028
+            ['2028-01-01', 'Ano Novo'], ['2028-02-28', 'Carnaval'], ['2028-02-29', 'Carnaval'], 
+            ['2028-04-14', 'Paixão de Cristo'], ['2028-04-21', 'Tiradentes'], ['2028-05-01', 'Dia do Trabalho'], 
+            ['2028-06-15', 'Corpus Christi'], ['2028-08-05', 'Aniversário de Rio Verde'], ['2028-09-07', 'Independência do Brasil'], 
+            ['2028-10-12', 'Nossa Sra. Aparecida'], ['2028-11-02', 'Finados'], ['2028-11-15', 'Proclamação da República'], 
+            ['2028-11-20', 'Consciência Negra'], ['2028-12-25', 'Natal']
         ]);
         
         let ucs = [];
@@ -269,14 +286,12 @@
 
         // ================= FUNÇÕES DE COR =================
         function generateColor() {
-            // Gera cores pastéis em formato Hexadecimal para funcionar no <input type="color">
             const r = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
             const g = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
             const b = Math.floor(Math.random() * 100 + 155).toString(16).padStart(2, '0');
             return `#${r}${g}${b}`;
         }
         
-        // Atribui uma cor inicial assim que carrega
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('uc-color').value = generateColor();
         });
@@ -384,15 +399,10 @@
                 document.getElementById('max-morning').value = 4; document.getElementById('max-afternoon').value = 4;
                 maxMorning = 4; maxAfternoon = 4; instructors = []; ucs = [];
                 holidays = new Map([
-                    ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], 
-                    ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], 
-                    ['2026-06-04', 'Corpus Christi'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], 
-                    ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
-                    
-                    ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], 
-                    ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], 
-                    ['2027-05-27', 'Corpus Christi'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], 
-                    ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
+                    ['2025-01-01', 'Ano Novo'], ['2025-03-03', 'Carnaval'], ['2025-03-04', 'Carnaval'], ['2025-04-18', 'Paixão de Cristo'], ['2025-04-21', 'Tiradentes'], ['2025-05-01', 'Dia do Trabalho'], ['2025-06-19', 'Corpus Christi'], ['2025-08-05', 'Aniversário de Rio Verde'], ['2025-09-07', 'Independência do Brasil'], ['2025-10-12', 'Nossa Sra. Aparecida'], ['2025-11-02', 'Finados'], ['2025-11-15', 'Proclamação da República'], ['2025-11-20', 'Consciência Negra'], ['2025-12-25', 'Natal'],
+                    ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], ['2026-06-04', 'Corpus Christi'], ['2026-08-05', 'Aniversário de Rio Verde'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
+                    ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], ['2027-05-27', 'Corpus Christi'], ['2027-08-05', 'Aniversário de Rio Verde'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal'],
+                    ['2028-01-01', 'Ano Novo'], ['2028-02-28', 'Carnaval'], ['2028-02-29', 'Carnaval'], ['2028-04-14', 'Paixão de Cristo'], ['2028-04-21', 'Tiradentes'], ['2028-05-01', 'Dia do Trabalho'], ['2028-06-15', 'Corpus Christi'], ['2028-08-05', 'Aniversário de Rio Verde'], ['2028-09-07', 'Independência do Brasil'], ['2028-10-12', 'Nossa Sra. Aparecida'], ['2028-11-02', 'Finados'], ['2028-11-15', 'Proclamação da República'], ['2028-11-20', 'Consciência Negra'], ['2028-12-25', 'Natal']
                 ]);
                 cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule();
             }
@@ -444,7 +454,6 @@
                             } else {
                                 phases = [{ startDate: u.DataInicio, daysOfWeek: u.DiasSemana ? String(u.DiasSemana).split(',').map(Number) : [1,2,3,4,5] }];
                             }
-                            // Fallback de cor para importar arquivos antigos
                             let importedColor = u.Cor;
                             if (!importedColor || importedColor.includes('hsl')) importedColor = generateColor();
 
@@ -525,7 +534,7 @@
             } else {
                 ucs.push({ id: Date.now().toString(), name, startDate, totalHours, dailyHours, shift, prof, color, phases, calculatedStart: null, calculatedEnd: null });
                 document.getElementById('uc-name').value = ''; document.getElementById('uc-total-hours').value = '';
-                document.getElementById('uc-color').value = generateColor(); // Reseta para uma nova cor sugerida
+                document.getElementById('uc-color').value = generateColor(); 
                 resetPhasesUI(); 
             }
             calculateSchedule();
@@ -562,7 +571,7 @@
             editingUcId = null; 
             document.getElementById('uc-name').value = ''; 
             document.getElementById('uc-total-hours').value = '';
-            document.getElementById('uc-color').value = generateColor(); // cor nova
+            document.getElementById('uc-color').value = generateColor(); 
             resetPhasesUI();
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             document.getElementById('btn-save-uc').innerText = "Adicionar UC"; document.getElementById('btn-save-uc').className = "flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm";
