@@ -6,10 +6,6 @@
     <title>Calendário de Curso - SENAI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Bibliotecas do Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
         .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -51,23 +47,14 @@
                     Novo
                 </button>
                 <div class="w-px bg-slate-200 my-1 mx-1"></div>
-                <button onclick="openModal('modal-load')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Abrir do Banco de Dados">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 002-2v-4M17 9l-5 5-5-5M12 12.5V3"></path></svg>
-                    Abrir da Nuvem
-                </button>
-                <button onclick="openModal('modal-save')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Salvar no Banco de Dados">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Salvar na Nuvem
-                </button>
-                <div class="w-px bg-slate-200 my-1 mx-1"></div>
                 <input type="file" id="file-upload" class="hidden" accept=".xlsx" onchange="importExcel(event)">
-                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Importar XLSX local">
+                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Importar arquivo XLSX local">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Importar
+                    Importar Excel
                 </button>
-                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar XLSX local">
+                <button onclick="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Exportar para arquivo XLSX">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Exportar
+                    Exportar Excel
                 </button>
             </div>
         </header>
@@ -160,7 +147,7 @@
                             </div>
                         </div>
                         
-                        <!-- Instrutor e Cor lado a lado -->
+                        <!-- Instrutor e Cor -->
                         <div class="grid grid-cols-4 gap-3">
                             <div class="col-span-3">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Instrutor</label>
@@ -206,45 +193,7 @@
         </div>
     </div>
 
-    <!-- MODAL NUVEM -->
-    <div id="modal-save" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 p-6 w-full max-w-md mx-4">
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Salvar na Nuvem</h2>
-            <p class="text-sm text-slate-500 mb-4">Dê um nome para este cronograma. Se já existir um com esse nome, ele será substituído.</p>
-            <input type="text" id="cloud-save-name" placeholder="Ex: Eletro 2026" class="w-full border border-slate-300 rounded-lg p-3 text-sm font-semibold mb-6">
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal('modal-save')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
-                <button onclick="saveToCloud()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Salvar Dados</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-load" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 p-6 w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Abrir da Nuvem</h2>
-            <p class="text-sm text-slate-500 mb-4">Selecione um cronograma salvo para carregar.</p>
-            <div id="cloud-list-container" class="flex-1 overflow-y-auto calendar-scroll border border-slate-200 rounded-lg p-2 space-y-2 mb-6 min-h-[150px]">
-                <div class="text-center text-slate-400 text-sm py-8">Carregando listas do servidor...</div>
-            </div>
-            <div class="flex justify-end gap-3 mt-auto">
-                <button onclick="closeModal('modal-load')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // ================= FIREBASE CONFIG =================
-        const firebaseConfig = {
-          apiKey: "AIzaSyD4kXXgFJZSnPkMcr0RLpM7x7YCKBlaxuw",
-          authDomain: "calendariossenai.firebaseapp.com",
-          projectId: "calendariossenai",
-          storageBucket: "calendariossenai.firebasestorage.app",
-          messagingSenderId: "416015770151",
-          appId: "1:416015770151:web:59f19d9d6c225b84eea402"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         // ================= ESTADO GLOBAL =================
         let maxMorning = 4;
         let maxAfternoon = 4;
@@ -342,54 +291,6 @@
         function resetPhasesUI() {
             document.getElementById('phases-list').innerHTML = '';
             addPhaseUI('', [1,2,3,4,5], true);
-        }
-
-        // ================= FIREBASE E NUVEM =================
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); if(id === 'modal-load') fetchCloudList(); if(id === 'modal-save') document.getElementById('cloud-save-name').value = document.getElementById('course-name').value || ''; }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        async function saveToCloud() {
-            const saveName = document.getElementById('cloud-save-name').value.trim();
-            if(!saveName) { alert("Digite um nome."); return; }
-            const data = {
-                courseName: document.getElementById('course-name').value, targetHours: document.getElementById('course-target-hours').value,
-                maxMorning, maxAfternoon, instructors, holidays: Array.from(holidays.entries()), ucs, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            try { await db.collection("cronogramas").doc(saveName).set(data); alert("Salvo na nuvem!"); closeModal('modal-save'); } 
-            catch (error) { alert("Erro de permissão!"); }
-        }
-
-        async function fetchCloudList() {
-            const container = document.getElementById('cloud-list-container'); container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Buscando na nuvem...</div>';
-            try {
-                const snapshot = await db.collection("cronogramas").get();
-                if(snapshot.empty) { container.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">Nenhum cronograma salvo.</div>'; return; }
-                container.innerHTML = '';
-                snapshot.forEach(doc => {
-                    container.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg cursor-pointer transition-colors"><span class="font-bold text-slate-700">${doc.id}</span><button onclick="loadFromCloud('${doc.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-700">Abrir</button></div>`;
-                });
-            } catch (error) { container.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Erro de conexão.</div>'; }
-        }
-
-        async function loadFromCloud(docId) {
-            try {
-                const doc = await db.collection("cronogramas").doc(docId).get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    document.getElementById('course-name').value = data.courseName || ''; document.getElementById('course-target-hours').value = data.targetHours || '';
-                    document.getElementById('max-morning').value = data.maxMorning || 4; document.getElementById('max-afternoon').value = data.maxAfternoon || 4;
-                    maxMorning = data.maxMorning || 4; maxAfternoon = data.maxAfternoon || 4;
-                    instructors = data.instructors || []; holidays.clear();
-                    if(data.holidays) { data.holidays.forEach(([date, name]) => holidays.set(date, name)); }
-                    
-                    ucs = (data.ucs || []).map(u => {
-                        let phases = u.phases;
-                        if (!phases) phases = [{ startDate: u.startDate, daysOfWeek: u.daysOfWeek || [1,2,3,4,5] }];
-                        return {...u, phases, startDate: phases[0].startDate};
-                    });
-                    cancelEdit(); renderInstructors(); renderHolidays(); calculateSchedule(); closeModal('modal-load');
-                }
-            } catch (error) { alert("Erro ao carregar dados."); }
         }
 
         // ================= GERAL E ARQUIVOS =================
