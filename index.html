@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendário de Curso - SENAI</title>
+    <title>Criador de Calendários - SENAI</title>
     <!-- Bibliotecas de Estilo e Excel -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -15,7 +15,10 @@
             aspect-ratio: 1; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; 
             border-radius: 4px; border: 1px solid #e2e8f0; position: relative; overflow: hidden; cursor: default;
         }
+        /* Cores Feriado vs Férias */
         .day-cell.holiday { color: #ef4444; font-weight: bold; background-color: #fee2e2; border-color: #fca5a5; }
+        .day-cell.ferias { color: #d97706; font-weight: bold; background-color: #fef3c7; border-color: #fde68a; }
+        
         .day-cell.weekend { background-color: #f8fafc; color: #94a3b8; }
         .day-cell.has-class { font-weight: bold; color: #1e293b; border-color: rgba(0,0,0,0.1); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .day-number { z-index: 10; text-shadow: 0 0 3px rgba(255,255,255,0.9), 0 0 1px rgba(255,255,255,1); }
@@ -39,7 +42,7 @@
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="Logo SENAI" class="h-8 md:h-10 object-contain" onerror="this.style.display='none'">
                 <div class="w-px h-10 bg-slate-300 hidden sm:block"></div>
-                <h1 class="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Planejador de Cronograma</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Criador de Calendários</h1>
             </div>
             
             <div class="flex flex-wrap gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
@@ -121,8 +124,15 @@
                         Férias e Feriados
                     </h2>
                     <div class="flex flex-col gap-2 mb-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <input type="text" id="holiday-name" placeholder="Nome (Ex: Férias de Julho, Feriado Local)" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-semibold">
-                        <div class="flex items-center gap-2">
+                        <div class="flex gap-2">
+                            <select id="holiday-type" class="w-1/3 border border-slate-300 rounded-lg p-2 text-xs font-semibold bg-white text-slate-700 focus:ring-red-500">
+                                <option value="feriado">Feriado</option>
+                                <option value="ferias">Férias</option>
+                            </select>
+                            <input type="text" id="holiday-name" placeholder="Nome (Ex: Férias de Julho)" class="flex-1 border border-slate-300 rounded-lg p-2 text-sm font-semibold">
+                        </div>
+                        
+                        <div class="flex items-center gap-2 mt-1">
                             <div class="flex-1">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Inicial</label>
                                 <input type="date" id="holiday-start" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
@@ -191,7 +201,15 @@
                             </div>
                         </div>
                         
-                        <div class="flex gap-2 mt-1">
+                        <!-- NOVIDADE: IGNORAR FÉRIAS -->
+                        <div class="border-t border-slate-200 pt-2 mt-1">
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
+                                <input type="checkbox" id="uc-ignore-ferias" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <span>Ignorar Férias (Prática Profissional)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-2">
                             <button id="btn-save-uc" onclick="saveUC()" class="flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm">Adicionar UC</button>
                             <button id="btn-cancel-edit" onclick="cancelEdit()" class="hidden bg-slate-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-500 transition-colors shadow-sm">Cancelar</button>
                         </div>
@@ -235,13 +253,16 @@
         let instructors = []; 
         let editingUcId = null; 
         
-        // Feriados base configurados para 2025, 2026, 2027 e 2028 (+ Aniversário de Rio Verde)
-        let holidays = new Map([
+        // Feriados base
+        const defaultHolidaysArr = [
             ['2025-01-01', 'Ano Novo'], ['2025-03-03', 'Carnaval'], ['2025-03-04', 'Carnaval'], ['2025-04-18', 'Paixão de Cristo'], ['2025-04-21', 'Tiradentes'], ['2025-05-01', 'Dia do Trabalho'], ['2025-06-19', 'Corpus Christi'], ['2025-08-05', 'Aniversário de Rio Verde'], ['2025-09-07', 'Independência do Brasil'], ['2025-10-12', 'Nossa Sra. Aparecida'], ['2025-11-02', 'Finados'], ['2025-11-15', 'Proclamação da República'], ['2025-11-20', 'Consciência Negra'], ['2025-12-25', 'Natal'],
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], ['2026-06-04', 'Corpus Christi'], ['2026-08-05', 'Aniversário de Rio Verde'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
             ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], ['2027-05-27', 'Corpus Christi'], ['2027-08-05', 'Aniversário de Rio Verde'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal'],
             ['2028-01-01', 'Ano Novo'], ['2028-02-28', 'Carnaval'], ['2028-02-29', 'Carnaval'], ['2028-04-14', 'Paixão de Cristo'], ['2028-04-21', 'Tiradentes'], ['2028-05-01', 'Dia do Trabalho'], ['2028-06-15', 'Corpus Christi'], ['2028-08-05', 'Aniversário de Rio Verde'], ['2028-09-07', 'Independência do Brasil'], ['2028-10-12', 'Nossa Sra. Aparecida'], ['2028-11-02', 'Finados'], ['2028-11-15', 'Proclamação da República'], ['2028-11-20', 'Consciência Negra'], ['2028-12-25', 'Natal']
-        ]);
+        ];
+        
+        let holidays = new Map();
+        defaultHolidaysArr.forEach(([d, n]) => holidays.set(d, { name: n, type: 'feriado' }));
         
         let ucs = [];
         let schedule = {}; 
@@ -356,8 +377,12 @@
                 const instData = instructors.map(i => ({ Nome: i }));
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instData), "Instrutores");
                 
-                // Sheet: Feriados
-                const holData = Array.from(holidays.entries()).map(([data, nome]) => ({ Data: data, Nome: nome }));
+                // Sheet: Feriados (Salva o tipo também)
+                const holData = Array.from(holidays.entries()).map(([data, obj]) => ({ 
+                    Data: data, 
+                    Nome: obj.name,
+                    Tipo: obj.type
+                }));
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holData), "Feriados");
                 
                 // Sheet: UCs
@@ -370,7 +395,8 @@
                         CargaDiaria: u.dailyHours, 
                         Turno: u.shift, 
                         Professor: u.prof, 
-                        Cor: u.color, 
+                        Cor: u.color,
+                        IgnorarFerias: u.ignoreFerias ? 'Sim' : 'Não',
                         Fases: phasesStr 
                     };
                 });
@@ -417,7 +443,7 @@
                     if (wb.Sheets["Feriados"]) { 
                         holidays.clear(); 
                         XLSX.utils.sheet_to_json(wb.Sheets["Feriados"]).forEach(h => { 
-                            if(h.Data) holidays.set(h.Data, h.Nome || 'Feriado'); 
+                            if(h.Data) holidays.set(h.Data, { name: h.Nome || 'Feriado', type: h.Tipo || 'feriado' }); 
                         }); 
                     }
                     
@@ -450,7 +476,8 @@
                                 dailyHours: parseInt(u.CargaDiaria), 
                                 shift: u.Turno, 
                                 prof: u.Professor, 
-                                color: importedColor, 
+                                color: importedColor,
+                                ignoreFerias: u.IgnorarFerias === 'Sim',
                                 phases: phases, 
                                 calculatedStart: null, 
                                 calculatedEnd: null 
@@ -468,7 +495,6 @@
                     console.error(error);
                 }
                 
-                // Limpa o input file para permitir importar o mesmo arquivo novamente
                 document.getElementById('file-upload').value = '';
             }; 
             reader.readAsArrayBuffer(file);
@@ -512,9 +538,10 @@
 
         // ================= FÉRIAS E FERIADOS =================
         function addHoliday() { 
+            const typeVal = document.getElementById('holiday-type').value;
             const startVal = document.getElementById('holiday-start').value;
             const endVal = document.getElementById('holiday-end').value; 
-            const nameVal = document.getElementById('holiday-name').value.trim() || 'Feriado'; 
+            const nameVal = document.getElementById('holiday-name').value.trim() || (typeVal === 'feriado' ? 'Feriado' : 'Férias'); 
             
             if (!startVal) { alert("Informe a data inicial."); return; }
             
@@ -525,7 +552,7 @@
             
             let curr = new Date(startD); 
             while (curr <= endD) { 
-                holidays.set(toDateString(curr), nameVal); 
+                holidays.set(toDateString(curr), { name: nameVal, type: typeVal }); 
                 curr.setDate(curr.getDate() + 1); 
             }
             
@@ -558,18 +585,19 @@
             if (sorted.length === 0) return;
             
             const groups = []; 
-            let current = { start: sorted[0][0], end: sorted[0][0], name: sorted[0][1] };
+            let current = { start: sorted[0][0], end: sorted[0][0], name: sorted[0][1].name, type: sorted[0][1].type };
             
             for(let i = 1; i < sorted.length; i++) {
-                const [dateStr, name] = sorted[i];
+                const [dateStr, obj] = sorted[i];
                 const prevDate = new Date(current.end + 'T00:00:00');
                 const currDate = new Date(dateStr + 'T00:00:00');
                 
-                if (Math.ceil(Math.abs(currDate - prevDate) / 86400000) === 1 && name === current.name) {
+                // Agrupa se for o dia seguinte E tiver o mesmo nome/tipo
+                if (Math.ceil(Math.abs(currDate - prevDate) / 86400000) === 1 && obj.name === current.name && obj.type === current.type) {
                     current.end = dateStr;
                 } else { 
                     groups.push(current); 
-                    current = { start: dateStr, end: dateStr, name: name }; 
+                    current = { start: dateStr, end: dateStr, name: obj.name, type: obj.type }; 
                 }
             }
             groups.push(current);
@@ -578,10 +606,16 @@
                 let d = formatDateBR(g.start); 
                 if (g.start !== g.end) d += ` até ${formatDateBR(g.end)}`;
                 
+                const badgeColor = g.type === 'feriado' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200';
+                const tag = g.type === 'feriado' ? 'FERIADO' : 'FÉRIAS';
+                
                 container.innerHTML += `
-                <div class="flex justify-between items-center bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm">
-                    <span>${d} - <span class="font-normal">${g.name}</span></span>
-                    <button onclick="removeHolidayRange('${g.start}', '${g.end}')" class="ml-2 hover:text-red-900 focus:outline-none text-lg leading-none">&times;</button>
+                <div class="flex justify-between items-center ${badgeColor} border px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/50">${tag}</span>
+                        <span>${d} - <span class="font-normal">${g.name}</span></span>
+                    </div>
+                    <button onclick="removeHolidayRange('${g.start}', '${g.end}')" class="ml-2 hover:opacity-60 focus:outline-none text-lg leading-none">&times;</button>
                 </div>`;
             });
         }
@@ -594,6 +628,7 @@
             const shift = document.getElementById('uc-shift').value; 
             const prof = document.getElementById('uc-prof-select').value; 
             const color = document.getElementById('uc-color').value;
+            const ignoreFerias = document.getElementById('uc-ignore-ferias').checked;
             
             const phases = getPhasesFromUI();
             
@@ -617,6 +652,7 @@
                         shift, 
                         prof, 
                         color, 
+                        ignoreFerias,
                         phases
                     });
                 }
@@ -631,6 +667,7 @@
                     shift, 
                     prof, 
                     color, 
+                    ignoreFerias,
                     phases, 
                     calculatedStart: null, 
                     calculatedEnd: null 
@@ -639,6 +676,7 @@
                 document.getElementById('uc-name').value = ''; 
                 document.getElementById('uc-total-hours').value = ''; 
                 document.getElementById('uc-color').value = generateColor(); 
+                document.getElementById('uc-ignore-ferias').checked = false;
                 resetPhasesUI(); 
             } 
             
@@ -656,6 +694,7 @@
             document.getElementById('uc-shift').value = uc.shift; 
             document.getElementById('uc-prof-select').value = uc.prof; 
             document.getElementById('uc-color').value = uc.color || generateColor();
+            document.getElementById('uc-ignore-ferias').checked = !!uc.ignoreFerias;
             
             document.getElementById('phases-list').innerHTML = '';
             if (uc.phases && uc.phases.length > 0) {
@@ -676,6 +715,7 @@
             document.getElementById('uc-name').value = ''; 
             document.getElementById('uc-total-hours').value = ''; 
             document.getElementById('uc-color').value = generateColor(); 
+            document.getElementById('uc-ignore-ferias').checked = false;
             resetPhasesUI();
             
             document.getElementById('uc-form-container').classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30'); 
@@ -706,7 +746,6 @@
                 totalHoursCounter += uc.totalHours; 
                 let hoursToAllocate = uc.totalHours; 
                 
-                // Ordena as fases cronologicamente
                 const sortedPhases = [...(uc.phases || [])].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
                 if(sortedPhases.length === 0) {
                     sortedPhases.push({ startDate: uc.startDate, daysOfWeek: [1,2,3,4,5] });
@@ -727,8 +766,27 @@
                         }
                     }
                     
-                    // Pula se for dia não marcado na fase ou se for feriado
-                    if (!activePhase.daysOfWeek.includes(dayOfWeek) || holidays.has(dateStr)) { 
+                    // Regras de Bloqueio (Pular dia)
+                    let shouldSkip = false;
+                    
+                    // 1. Dia não pertence aos dias da semana configurados na fase
+                    if (!activePhase.daysOfWeek.includes(dayOfWeek)) {
+                        shouldSkip = true;
+                    } 
+                    // 2. Dia tem feriado ou férias
+                    else if (holidays.has(dateStr)) {
+                        const hData = holidays.get(dateStr);
+                        if (hData.type === 'feriado') {
+                            shouldSkip = true; // Feriado NINGUÉM trabalha
+                        } else if (hData.type === 'ferias') {
+                            if (!uc.ignoreFerias) {
+                                shouldSkip = true; // Férias normais pausam a UC
+                            }
+                            // Se uc.ignoreFerias for true, shouldSkip continua false, a aula acontece.
+                        }
+                    }
+                    
+                    if (shouldSkip) { 
                         currentDate.setDate(currentDate.getDate() + 1); 
                         continue; 
                     }
@@ -792,6 +850,8 @@
                     const daysArr = (uc.phases && uc.phases[0]) ? uc.phases[0].daysOfWeek : [1,2,3,4,5];
                     dh = `<p class="text-[10px] text-slate-400 mt-0.5 font-medium">Dias: ${daysArr.map(d=>dm[d]).join(', ')}</p>`;
                 }
+                
+                let badgeFerias = uc.ignoreFerias ? `<span class="inline-block mt-1 bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold border border-amber-200">🚀 IGNORA FÉRIAS</span>` : '';
 
                 container.innerHTML += `
                 <div class="p-3 rounded-lg border border-slate-200 bg-white relative shadow-sm">
@@ -811,6 +871,7 @@
                         <p class="text-xs text-slate-500 mt-1">Instrutor: <span class="font-bold text-slate-700">${uc.prof}</span></p>
                         <p class="text-[11px] font-semibold text-slate-500 mt-0.5">${uc.totalHours}h totais • ${uc.dailyHours}h/dia • <span class="${sc}">${uc.shift}</span></p>
                         ${dh}
+                        ${badgeFerias}
                         ${uc.calculatedStart ? `
                             <div class="mt-2 bg-slate-50 border border-slate-100 p-2 rounded text-xs flex justify-between shadow-inner">
                                 <div><span class="text-slate-400">Início:</span> <b class="text-slate-700">${formatDateBR(uc.calculatedStart)}</b></div>
@@ -898,9 +959,16 @@
                     cell.innerHTML = `<span class="day-number">${day}</span>`;
                     
                     if (dw === 0 || dw === 6) cell.classList.add('weekend');
+                    
                     if (holidays.has(ds)) { 
-                        cell.classList.add('holiday'); 
-                        cell.title = `Feriado: ${holidays.get(ds)}`; 
+                        const hData = holidays.get(ds);
+                        if(hData.type === 'ferias') {
+                            cell.classList.add('ferias');
+                            cell.title = `Férias: ${hData.name}`;
+                        } else {
+                            cell.classList.add('holiday'); 
+                            cell.title = `Feriado: ${hData.name}`; 
+                        }
                     }
                     
                     if (schedule[ds] && schedule[ds].ucs.length > 0) {
