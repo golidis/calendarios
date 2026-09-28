@@ -28,9 +28,37 @@
         .calendar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .calendar-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Ajuste do input de cor */
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+
+        /* ================= MODO DE IMPRESSÃO / PDF ================= */
+        .print-header { display: none; }
+        
+        @media print {
+            @page { margin: 1cm; size: A4 portrait; }
+            body { background-color: #fff !important; margin: 0; padding: 0; }
+            
+            /* Esconde controles e painéis laterais */
+            header, .lg\:w-1\/3, #year-buttons, button { display: none !important; }
+            
+            /* Expande a área principal */
+            .max-w-\[1400px\] { max-width: 100% !important; width: 100% !important; padding: 0 !important; }
+            .lg\:w-2\/3 { width: 100% !important; margin: 0 !important; gap: 2rem !important; }
+            
+            /* Remove restrições de rolagem e altura para imprimir tudo */
+            #calendar-container { height: auto !important; overflow: visible !important; padding: 0 !important; border: none !important; }
+            .bg-white { border: none !important; box-shadow: none !important; }
+            
+            /* Evita quebras de página no meio de um mês */
+            .month-grid { page-break-inside: avoid; break-inside: avoid; margin-bottom: 1rem; }
+            #calendar-grid > div { page-break-inside: avoid; break-inside: avoid; }
+            
+            /* Mostra o cabeçalho oficial de impressão */
+            .print-header { display: block !important; }
+            
+            /* Força os navegadores a imprimirem as cores de fundo */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 relative">
@@ -62,6 +90,14 @@
                 <button onclick="exportExcel()" class="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-white hover:shadow-sm rounded transition-all" title="Salvar o seu progresso em um arquivo XLSX">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Salvar Excel
+                </button>
+
+                <div class="w-px bg-slate-200 my-1 mx-2"></div>
+
+                <!-- NOVO BOTÃO PDF -->
+                <button onclick="exportPDF()" class="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-red-600 hover:bg-white hover:shadow-sm rounded transition-all" title="Gerar arquivo PDF para empresas">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    Exportar PDF
                 </button>
             </div>
         </header>
@@ -185,9 +221,7 @@
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase">Dias de Aula e Início</label>
                                 <button type="button" onclick="addPhaseUI()" class="text-[9px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold hover:bg-blue-100 uppercase tracking-wider transition-colors">+ Adicionar Fase</button>
                             </div>
-                            <div id="phases-list" class="space-y-3">
-                                <!-- Preenchido pelo Javascript -->
-                            </div>
+                            <div id="phases-list" class="space-y-3"></div>
                         </div>
                         
                         <div class="grid grid-cols-4 gap-3">
@@ -201,7 +235,6 @@
                             </div>
                         </div>
                         
-                        <!-- NOVIDADE: IGNORAR FÉRIAS -->
                         <div class="border-t border-slate-200 pt-2 mt-1">
                             <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
                                 <input type="checkbox" id="uc-ignore-ferias" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
@@ -222,6 +255,20 @@
             <!-- PAINEL PRINCIPAL -->
             <div class="w-full lg:w-2/3 flex flex-col gap-6 overflow-y-auto calendar-scroll pr-2 pb-4">
                 
+                <!-- CABEÇALHO DO PDF (SÓ APARECE NA IMPRESSÃO) -->
+                <div class="print-header mb-6 pb-4 border-b-2 border-slate-800">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight" id="pdf-course-name">Cronograma do Curso</h1>
+                            <p class="text-slate-600 font-semibold mt-1">Carga Horária Total: <span id="pdf-course-hours">--</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-slate-500 text-sm font-semibold">SENAI</p>
+                            <p class="text-slate-400 text-xs mt-1" id="pdf-date"></p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Calendário -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0">
                     <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
@@ -253,7 +300,6 @@
         let instructors = []; 
         let editingUcId = null; 
         
-        // Feriados base
         const defaultHolidaysArr = [
             ['2025-01-01', 'Ano Novo'], ['2025-03-03', 'Carnaval'], ['2025-03-04', 'Carnaval'], ['2025-04-18', 'Paixão de Cristo'], ['2025-04-21', 'Tiradentes'], ['2025-05-01', 'Dia do Trabalho'], ['2025-06-19', 'Corpus Christi'], ['2025-08-05', 'Aniversário de Rio Verde'], ['2025-09-07', 'Independência do Brasil'], ['2025-10-12', 'Nossa Sra. Aparecida'], ['2025-11-02', 'Finados'], ['2025-11-15', 'Proclamação da República'], ['2025-11-20', 'Consciência Negra'], ['2025-12-25', 'Natal'],
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], ['2026-06-04', 'Corpus Christi'], ['2026-08-05', 'Aniversário de Rio Verde'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
@@ -266,6 +312,21 @@
         
         let ucs = [];
         let schedule = {}; 
+
+        // ================= FUNÇÕES DE EXPORTAÇÃO =================
+        function exportPDF() {
+            // Atualiza os dados do cabeçalho de impressão
+            const cName = document.getElementById('course-name').value;
+            document.getElementById('pdf-course-name').innerText = cName ? `Cronograma: ${cName}` : 'Cronograma do Curso';
+            
+            const cHours = document.getElementById('course-target-hours').value;
+            document.getElementById('pdf-course-hours').innerText = cHours ? `${cHours}h` : '--';
+            
+            document.getElementById('pdf-date').innerText = `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`;
+            
+            // Chama a janela nativa de impressão do navegador
+            window.print();
+        }
 
         // ================= FUNÇÕES DE COR E DATA =================
         function generateColor() {
@@ -364,7 +425,6 @@
             try {
                 const wb = XLSX.utils.book_new();
                 
-                // Sheet: Configurações
                 const configData = [{ 
                     NomeCurso: document.getElementById('course-name').value, 
                     CargaTotalPrevista: document.getElementById('course-target-hours').value, 
@@ -373,11 +433,9 @@
                 }];
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(configData), "Configurações");
                 
-                // Sheet: Instrutores
                 const instData = instructors.map(i => ({ Nome: i }));
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instData), "Instrutores");
                 
-                // Sheet: Feriados (Salva o tipo também)
                 const holData = Array.from(holidays.entries()).map(([data, obj]) => ({ 
                     Data: data, 
                     Nome: obj.name,
@@ -385,7 +443,6 @@
                 }));
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holData), "Feriados");
                 
-                // Sheet: UCs
                 const exportUcs = ucs.map(u => {
                     const phasesStr = u.phases.map(p => `${p.startDate}:${p.daysOfWeek.join(',')}`).join('|');
                     return { 
@@ -404,7 +461,7 @@
                 
                 XLSX.writeFile(wb, "cronograma_curso.xlsx");
             } catch(e) {
-                alert("Erro ao exportar o Excel. Verifique se há dados válidos inseridos.");
+                alert("Erro ao exportar o Excel.");
                 console.error(e);
             }
         }
@@ -419,7 +476,6 @@
                     const data = new Uint8Array(e.target.result);
                     const wb = XLSX.read(data, { type: 'array' });
                     
-                    // Lendo Configurações
                     if (wb.Sheets["Configurações"]) { 
                         const c = XLSX.utils.sheet_to_json(wb.Sheets["Configurações"])[0]; 
                         if (c) { 
@@ -432,14 +488,12 @@
                         } 
                     }
                     
-                    // Lendo Instrutores
                     if (wb.Sheets["Instrutores"]) {
                         instructors = XLSX.utils.sheet_to_json(wb.Sheets["Instrutores"]).map(i => i.Nome).filter(Boolean); 
                     } else {
                         instructors = [];
                     }
                     
-                    // Lendo Feriados
                     if (wb.Sheets["Feriados"]) { 
                         holidays.clear(); 
                         XLSX.utils.sheet_to_json(wb.Sheets["Feriados"]).forEach(h => { 
@@ -447,7 +501,6 @@
                         }); 
                     }
                     
-                    // Lendo UCs
                     if (wb.Sheets["UnidadesCurriculares"]) {
                         ucs = XLSX.utils.sheet_to_json(wb.Sheets["UnidadesCurriculares"]).map(u => {
                             let phases = [];
@@ -592,7 +645,6 @@
                 const prevDate = new Date(current.end + 'T00:00:00');
                 const currDate = new Date(dateStr + 'T00:00:00');
                 
-                // Agrupa se for o dia seguinte E tiver o mesmo nome/tipo
                 if (Math.ceil(Math.abs(currDate - prevDate) / 86400000) === 1 && obj.name === current.name && obj.type === current.type) {
                     current.end = dateStr;
                 } else { 
@@ -632,45 +684,18 @@
             
             const phases = getPhasesFromUI();
             
-            if (!phases) { 
-                alert("Preencha todas as datas de início e marque os dias da semana em todas as fases configuradas."); 
-                return; 
-            }
-            if (!name || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) { 
-                alert("Preencha todos os campos obrigatórios e garanta que existe pelo menos um instrutor criado."); 
-                return; 
-            }
+            if (!phases) { alert("Preencha todas as datas de início e marque os dias da semana."); return; }
+            if (!name || isNaN(totalHours) || totalHours <= 0 || isNaN(dailyHours) || dailyHours <= 0 || !prof) { alert("Preencha todos os campos e instrutor."); return; }
 
             if (editingUcId) {
                 const i = ucs.findIndex(u => u.id === editingUcId); 
                 if (i !== -1) {
-                    Object.assign(ucs[i], {
-                        name, 
-                        startDate: phases[0].startDate, 
-                        totalHours, 
-                        dailyHours, 
-                        shift, 
-                        prof, 
-                        color, 
-                        ignoreFerias,
-                        phases
-                    });
+                    Object.assign(ucs[i], { name, startDate: phases[0].startDate, totalHours, dailyHours, shift, prof, color, ignoreFerias, phases });
                 }
                 cancelEdit(); 
             } else {
                 ucs.push({ 
-                    id: Date.now().toString(), 
-                    name, 
-                    startDate: phases[0].startDate, 
-                    totalHours, 
-                    dailyHours, 
-                    shift, 
-                    prof, 
-                    color, 
-                    ignoreFerias,
-                    phases, 
-                    calculatedStart: null, 
-                    calculatedEnd: null 
+                    id: Date.now().toString(), name, startDate: phases[0].startDate, totalHours, dailyHours, shift, prof, color, ignoreFerias, phases, calculatedStart: null, calculatedEnd: null 
                 });
                 
                 document.getElementById('uc-name').value = ''; 
@@ -679,7 +704,6 @@
                 document.getElementById('uc-ignore-ferias').checked = false;
                 resetPhasesUI(); 
             } 
-            
             calculateSchedule();
         }
 
@@ -737,7 +761,6 @@
             schedule = {}; 
             let totalHoursCounter = 0; 
             
-            // Ordena as matérias pela data de início real da primeira fase
             ucs.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
             
             ucs.forEach(uc => {
@@ -747,9 +770,7 @@
                 let hoursToAllocate = uc.totalHours; 
                 
                 const sortedPhases = [...(uc.phases || [])].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-                if(sortedPhases.length === 0) {
-                    sortedPhases.push({ startDate: uc.startDate, daysOfWeek: [1,2,3,4,5] });
-                }
+                if(sortedPhases.length === 0) sortedPhases.push({ startDate: uc.startDate, daysOfWeek: [1,2,3,4,5] });
                 
                 let [sYear, sMonth, sDay] = sortedPhases[0].startDate.split('-');
                 let currentDate = new Date(sYear, sMonth - 1, sDay);
@@ -758,38 +779,22 @@
                     const dateStr = toDateString(currentDate);
                     const dayOfWeek = currentDate.getDay(); 
                     
-                    // Descobre a fase ativa para o dia atual no loop
                     let activePhase = sortedPhases[0]; 
-                    for(let p of sortedPhases) {
-                        if (currentDate >= new Date(p.startDate + 'T00:00:00')) {
-                            activePhase = p;
-                        }
-                    }
+                    for(let p of sortedPhases) if (currentDate >= new Date(p.startDate + 'T00:00:00')) activePhase = p;
                     
-                    // Regras de Bloqueio (Pular dia)
                     let shouldSkip = false;
-                    
-                    // 1. Dia não pertence aos dias da semana configurados na fase
                     if (!activePhase.daysOfWeek.includes(dayOfWeek)) {
                         shouldSkip = true;
-                    } 
-                    // 2. Dia tem feriado ou férias
-                    else if (holidays.has(dateStr)) {
+                    } else if (holidays.has(dateStr)) {
                         const hData = holidays.get(dateStr);
                         if (hData.type === 'feriado') {
-                            shouldSkip = true; // Feriado NINGUÉM trabalha
+                            shouldSkip = true; 
                         } else if (hData.type === 'ferias') {
-                            if (!uc.ignoreFerias) {
-                                shouldSkip = true; // Férias normais pausam a UC
-                            }
-                            // Se uc.ignoreFerias for true, shouldSkip continua false, a aula acontece.
+                            if (!uc.ignoreFerias) shouldSkip = true; 
                         }
                     }
                     
-                    if (shouldSkip) { 
-                        currentDate.setDate(currentDate.getDate() + 1); 
-                        continue; 
-                    }
+                    if (shouldSkip) { currentDate.setDate(currentDate.getDate() + 1); continue; }
                     
                     if (!schedule[dateStr]) schedule[dateStr] = { manha: 0, tarde: 0, ucs: [] }; 
                     let allocatedHere = 0;
@@ -803,27 +808,20 @@
                         if (c > 0) { schedule[dateStr].tarde += c; allocatedHere = c; } 
                     } 
                     else if (uc.shift === 'Integral') {
-                        let aM = maxMorning - schedule[dateStr].manha;
-                        let aT = maxAfternoon - schedule[dateStr].tarde;
+                        let aM = maxMorning - schedule[dateStr].manha, aT = maxAfternoon - schedule[dateStr].tarde;
                         let c = Math.min(uc.dailyHours, aM + aT, hoursToAllocate);
-                        
                         if (c > 0) { 
-                            let tM = Math.min(c, aM);
-                            let tT = c - tM; 
-                            schedule[dateStr].manha += tM; 
-                            schedule[dateStr].tarde += tT; 
-                            allocatedHere = c; 
+                            let tM = Math.min(c, aM), tT = c - tM; 
+                            schedule[dateStr].manha += tM; schedule[dateStr].tarde += tT; allocatedHere = c; 
                         }
                     }
 
                     if (allocatedHere > 0) { 
                         schedule[dateStr].ucs.push({ id: uc.id, name: uc.name, hours: allocatedHere, color: uc.color, shift: uc.shift }); 
                         hoursToAllocate -= allocatedHere; 
-                        
                         if (!uc.calculatedStart) uc.calculatedStart = dateStr; 
                         uc.calculatedEnd = dateStr; 
                     }
-                    
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
             });
@@ -943,12 +941,10 @@
                 grid.className = 'month-grid';
                 ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach(d => grid.innerHTML += `<div class="day-header">${d}</div>`);
                 
-                // Espaços vazios no início do mês
                 for (let i = 0; i < new Date(y, m, 1).getDay(); i++) {
                     grid.appendChild(document.createElement('div'));
                 }
                 
-                // Dias do mês
                 const daysInMonth = new Date(y, m + 1, 0).getDate();
                 for (let day = 1; day <= daysInMonth; day++) {
                     const ds = toDateString(new Date(y, m, day));
