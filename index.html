@@ -32,8 +32,6 @@
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 
         /* ================= MODO DE IMPRESSÃO / PDF ================= */
-        .print-header { display: none; }
-        
         @media print {
             @page { margin: 1cm; size: A4 portrait; }
             
@@ -42,56 +40,25 @@
                 margin: 0 !important; 
                 padding: 0 !important; 
                 height: auto !important; 
-                overflow: visible !important; 
             }
             
-            header, .lg\:w-1\/3, #year-buttons, button { 
-                display: none !important; 
-            }
-            
-            .h-screen, .min-h-screen, .flex-1, .min-h-0, .overflow-y-auto, .calendar-scroll { 
-                height: auto !important; 
-                min-height: 0 !important; 
-                max-height: none !important;
-                overflow: visible !important; 
-                display: block !important; 
-            }
-            
-            .max-w-\[1400px\] { max-width: 100% !important; width: 100% !important; padding: 0 !important; }
-            .lg\:w-2\/3 { width: 100% !important; margin: 0 !important; display: block !important; }
-            
-            #calendar-container { 
-                height: auto !important; 
-                overflow: visible !important; 
-                padding: 0 !important; 
-                border: none !important; 
-            }
-            
-            #calendar-grid { 
-                display: grid !important; 
-                grid-template-columns: repeat(2, 1fr) !important; 
-                gap: 1.5rem !important; 
-            }
-            
-            .bg-white { border: none !important; box-shadow: none !important; }
-            
+            /* Regras de quebra de página para não cortar os meses no meio */
             .month-grid, #calendar-grid > div, #instructor-summary > div { 
                 page-break-inside: avoid !important; 
                 break-inside: avoid !important; 
                 margin-bottom: 1rem;
             }
             
-            .print-header { display: block !important; margin-bottom: 1.5rem !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 relative">
 
-    <div class="max-w-[1400px] mx-auto p-4 md:p-6 h-screen flex flex-col">
+    <div class="max-w-[1400px] mx-auto p-4 md:p-6 h-screen flex flex-col print:h-auto print:max-w-full print:p-0">
         
-        <!-- CABEÇALHO -->
-        <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <!-- CABEÇALHO DA TELA (OCULTO NA IMPRESSÃO) -->
+        <header class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white p-4 rounded-xl shadow-sm border border-slate-200 print:hidden">
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="Logo SENAI" class="h-8 md:h-10 object-contain" onerror="this.style.display='none'">
                 <div class="w-px h-10 bg-slate-300 hidden sm:block"></div>
@@ -126,10 +93,10 @@
             </div>
         </header>
 
-        <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+        <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 print:block print:w-full">
             
-            <!-- PAINEL LATERAL -->
-            <div class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 calendar-scroll">
+            <!-- PAINEL LATERAL (OCULTO NA IMPRESSÃO) -->
+            <div class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 calendar-scroll print:hidden">
                 
                 <!-- Identificação e Capacidade -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
@@ -276,11 +243,11 @@
                 </div>
             </div>
 
-            <!-- PAINEL PRINCIPAL -->
-            <div class="w-full lg:w-2/3 flex flex-col gap-6 overflow-y-auto calendar-scroll pr-2 pb-4">
+            <!-- PAINEL PRINCIPAL (O QUE VAI IMPRIMIR DE FATO) -->
+            <div class="w-full lg:w-2/3 flex flex-col gap-6 overflow-y-auto calendar-scroll pr-2 pb-4 print:w-full print:block print:overflow-visible print:pr-0 print:pb-0">
                 
                 <!-- CABEÇALHO DO PDF (SÓ APARECE NA IMPRESSÃO) -->
-                <div class="print-header mb-6 pb-4 border-b-2 border-slate-800">
+                <div class="hidden print:block mb-6 pb-4 border-b-2 border-slate-800">
                     <div class="flex justify-between items-end">
                         <div>
                             <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight" id="pdf-course-name">Cronograma do Curso</h1>
@@ -294,23 +261,25 @@
                 </div>
 
                 <!-- Calendário -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0">
-                    <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0 print:border-none print:shadow-none print:bg-transparent">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center print:border-none print:rounded-lg print:mb-4">
                         <h2 class="font-bold text-lg text-slate-800">Calendário de Execução</h2>
-                        <div class="flex gap-2" id="year-buttons"></div>
+                        <div class="flex gap-2 print:hidden" id="year-buttons"></div>
                     </div>
-                    <div class="p-6 overflow-y-auto h-[600px] calendar-scroll relative" id="calendar-container">
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="calendar-grid"></div>
+                    <div class="p-6 overflow-y-auto h-[600px] calendar-scroll relative print:h-auto print:overflow-visible print:p-0" id="calendar-container">
+                        <!-- print:grid-cols-2 força os meses a ficarem lado a lado igual na imagem -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 print:grid-cols-2" id="calendar-grid"></div>
                     </div>
                 </div>
 
                 <!-- Resumo por Professor -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 shrink-0">
-                    <div class="p-4 border-b border-slate-100 bg-slate-50">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 shrink-0 mt-6 print:border-none print:shadow-none print:bg-transparent">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 print:hidden">
                         <h2 class="font-bold text-lg text-slate-800">Alocação por Instrutor</h2>
                     </div>
-                    <div class="p-6">
-                        <div id="instructor-summary" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                    <div class="p-6 print:p-0">
+                        <!-- print:grid-cols-1 força cada professor a ocupar a linha toda igual na imagem -->
+                        <div id="instructor-summary" class="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-1"></div>
                     </div>
                 </div>
             </div>
@@ -327,8 +296,7 @@
         const defaultHolidaysArr = [
             ['2025-01-01', 'Ano Novo'], ['2025-03-03', 'Carnaval'], ['2025-03-04', 'Carnaval'], ['2025-04-18', 'Paixão de Cristo'], ['2025-04-21', 'Tiradentes'], ['2025-05-01', 'Dia do Trabalho'], ['2025-06-19', 'Corpus Christi'], ['2025-08-05', 'Aniversário de Rio Verde'], ['2025-09-07', 'Independência do Brasil'], ['2025-10-12', 'Nossa Sra. Aparecida'], ['2025-11-02', 'Finados'], ['2025-11-15', 'Proclamação da República'], ['2025-11-20', 'Consciência Negra'], ['2025-12-25', 'Natal'],
             ['2026-01-01', 'Ano Novo'], ['2026-02-16', 'Carnaval'], ['2026-02-17', 'Carnaval'], ['2026-04-03', 'Paixão de Cristo'], ['2026-04-21', 'Tiradentes'], ['2026-05-01', 'Dia do Trabalho'], ['2026-06-04', 'Corpus Christi'], ['2026-08-05', 'Aniversário de Rio Verde'], ['2026-09-07', 'Independência do Brasil'], ['2026-10-12', 'Nossa Sra. Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-15', 'Proclamação da República'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal'],
-            ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], ['2027-05-27', 'Corpus Christi'], ['2027-08-05', 'Aniversário de Rio Verde'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal'],
-            ['2028-01-01', 'Ano Novo'], ['2028-02-28', 'Carnaval'], ['2028-02-29', 'Carnaval'], ['2028-04-14', 'Paixão de Cristo'], ['2028-04-21', 'Tiradentes'], ['2028-05-01', 'Dia do Trabalho'], ['2028-06-15', 'Corpus Christi'], ['2028-08-05', 'Aniversário de Rio Verde'], ['2028-09-07', 'Independência do Brasil'], ['2028-10-12', 'Nossa Sra. Aparecida'], ['2028-11-02', 'Finados'], ['2028-11-15', 'Proclamação da República'], ['2028-11-20', 'Consciência Negra'], ['2028-12-25', 'Natal']
+            ['2027-01-01', 'Ano Novo'], ['2027-02-08', 'Carnaval'], ['2027-02-09', 'Carnaval'], ['2027-03-26', 'Paixão de Cristo'], ['2027-04-21', 'Tiradentes'], ['2027-05-01', 'Dia do Trabalho'], ['2027-05-27', 'Corpus Christi'], ['2027-08-05', 'Aniversário de Rio Verde'], ['2027-09-07', 'Independência do Brasil'], ['2027-10-12', 'Nossa Sra. Aparecida'], ['2027-11-02', 'Finados'], ['2027-11-15', 'Proclamação da República'], ['2027-11-20', 'Consciência Negra'], ['2027-12-25', 'Natal']
         ];
         
         let holidays = new Map();
@@ -336,12 +304,12 @@
         
         let ucs = [];
         let schedule = {}; 
-        let totalHoursCounter = 0; // Guardado no estado global
+        let totalHoursCounter = 0; 
 
         // ================= FUNÇÕES DE EXPORTAÇÃO =================
         function exportPDF() {
             const cName = document.getElementById('course-name').value;
-            document.getElementById('pdf-course-name').innerText = cName ? `Cronograma: ${cName}` : 'Cronograma do Curso';
+            document.getElementById('pdf-course-name').innerText = cName ? `CRONOGRAMA: ${cName}` : 'Cronograma do Curso';
             
             const cHours = document.getElementById('course-target-hours').value;
             document.getElementById('pdf-course-hours').innerText = cHours ? `${cHours}h` : '--';
@@ -363,7 +331,6 @@
             if(colorInput) colorInput.value = generateColor();
         });
 
-        // Resolve problemas de fuso horário. Recebe 'YYYY-MM-DD' e devolve Date
         function parseDateSafely(dateStr) {
             const [y, m, d] = dateStr.split('-').map(Number);
             return new Date(y, m - 1, d);
@@ -384,7 +351,6 @@
         }
 
         // ================= MOTOR PRINCIPAL E ATUALIZAÇÃO UI =================
-        // Desacoplamento: O cálculo agora não renderiza a tela.
         function calculateSchedule() {
             schedule = {}; 
             totalHoursCounter = 0; 
@@ -454,7 +420,6 @@
             });
         }
 
-        // Função master que chama os cálculos e atualiza todas as UIs em lote
         function updateAllUI() {
             calculateSchedule();
             document.getElementById('total-hours-display').innerText = `${totalHoursCounter}h Alocadas`; 
@@ -545,9 +510,7 @@
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(instData), "Instrutores");
                 
                 const holData = Array.from(holidays.entries()).map(([data, obj]) => ({ 
-                    Data: data, 
-                    Nome: obj.name,
-                    Tipo: obj.type
+                    Data: data, Nome: obj.name, Tipo: obj.type
                 }));
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holData), "Feriados");
                 
@@ -618,9 +581,7 @@
                             }
                             
                             let importedColor = u.Cor;
-                            if (!importedColor || !importedColor.includes('#')) {
-                                importedColor = generateColor();
-                            }
+                            if (!importedColor || !importedColor.includes('#')) { importedColor = generateColor(); }
 
                             return { 
                                 id: u.ID ? String(u.ID) : Date.now().toString() + Math.random(), 
@@ -632,8 +593,6 @@
                     }
                     
                     cancelEdit(); 
-                    renderInstructors(); 
-                    renderHolidays(); 
                     updateAllUI(); 
                     alert("Cronograma importado com sucesso!");
                 } catch (error) { 
@@ -955,11 +914,10 @@
 
             const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             
-            // O calendário usa manipulação direta de DOM por causa da estrutura complexa de Grid, mas agora está mais limpo
             container.innerHTML = '';
             monthsToRender.forEach(({y, m}) => {
                 const div = document.createElement('div'); 
-                div.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm'; 
+                div.className = 'bg-white border border-slate-200 rounded-xl p-4 shadow-sm print:border-none print:shadow-none'; 
                 div.id = `month-${y}-${m}`;
                 div.innerHTML = `<h3 class="font-bold text-slate-800 text-center mb-3">${monthNames[m]} ${y}</h3>`;
                 
